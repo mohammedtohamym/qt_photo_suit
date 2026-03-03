@@ -1,13 +1,32 @@
-# Photo Organizer (Qt)
+# PhotoSuite (Qt)
 
-A lightweight Qt Widgets desktop app to organize photos by folder with:
+A larger Qt Widgets photo software suite foundation inspired by Google Photos-style workflows.
 
-- Thumbnail grid browsing
-- Name and tag filtering
-- Favorites flag
-- 0-5 rating
-- Custom tags per photo
-- Metadata persistence in `.photo_organizer.json` inside the selected folder
+## Implemented Workspaces
+
+- **Library / Organize**
+	- Thumbnail browsing (grid/list)
+	- Name/tag/favorite/rating filters
+	- Sorting and adjustable thumbnail sizes
+	- Metadata editing (tags/favorite/rating)
+	- Bulk actions via compact menu
+- **Albums**
+	- Create/delete albums
+	- Add selected photos to albums
+	- Remove selected photos from albums
+	- Album data persisted in `.photo_organizer.json`
+- **Files**
+	- Folder file explorer with image filtering
+	- Open files directly from tree view
+- **Editor (Mini Photoshop baseline)**
+	- Brightness and contrast sliders
+	- Grayscale toggle
+	- Rotate left / rotate right
+	- Save edited copy
+
+## Product Planning
+
+See the complete large-project feature backlog in [PRODUCT_SUITE_FEATURES.md](PRODUCT_SUITE_FEATURES.md).
 
 ## Requirements
 
@@ -18,8 +37,8 @@ A lightweight Qt Widgets desktop app to organize photos by folder with:
 ## Build (Windows, PowerShell)
 
 ```powershell
-cmake -S . -B build -G "Ninja" -DCMAKE_PREFIX_PATH="C:/Qt/6.8.0/msvc2022_64"
-cmake --build build
+cmake -S . -B build -G "Visual Studio 16 2019" -A x64 -DCMAKE_PREFIX_PATH="./deps/Qt/6.5.3/msvc2019_64" -DCMAKE_DISABLE_FIND_PACKAGE_WrapVulkanHeaders=TRUE
+cmake --build build --config Release
 ```
 
 If you are using a different Qt installation, change `CMAKE_PREFIX_PATH` accordingly.
@@ -27,7 +46,7 @@ If you are using a different Qt installation, change `CMAKE_PREFIX_PATH` accordi
 ## Run
 
 ```powershell
-./build/PhotoOrganizerQt.exe
+./build/Release/PhotoOrganizerQt.exe
 ```
 
 ## Usage
@@ -35,11 +54,13 @@ If you are using a different Qt installation, change `CMAKE_PREFIX_PATH` accordi
 1. Open the app.
 2. Go to **File -> Open Photo Folder...**
 3. Select a folder that contains photos.
-4. Use filters at the top to find photos quickly.
-5. Select a photo, edit tags/favorite/rating, then click **Save metadata**.
-6. Double-click a thumbnail to open the photo using your system default image viewer.
+4. Use top filters to find photos quickly.
+5. Use **Organize** tab to edit metadata and run bulk actions.
+6. Use **Albums** tab to group selected photos.
+7. Use **Files** tab to navigate source files.
+8. Use **Editor** tab to preview edits and save edited copies.
 
 ## Notes
 
 - Supported image extensions include: `jpg`, `jpeg`, `png`, `bmp`, `gif`, `webp`, `tiff`, `tif`, `heic`.
-- Metadata is stored by relative photo path, so moving the whole folder preserves your organization.
+- Metadata and albums are stored by relative paths in `.photo_organizer.json`, so moving the whole folder preserves organization.
