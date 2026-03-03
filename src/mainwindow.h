@@ -102,6 +102,7 @@ private:
     QWidget *m_filesTab = nullptr;
     QTreeView *m_filesTree = nullptr;
     QFileSystemModel *m_fileModel = nullptr;
+    QPushButton *m_renameFileButton = nullptr;
 
     QWidget *m_timelineTab = nullptr;
     QListWidget *m_timelineList = nullptr;

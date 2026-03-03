@@ -331,9 +331,11 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     m_filesTree->setModel(m_fileModel);
     m_filesTree->setSortingEnabled(true);
     m_filesTree->sortByColumn(0, Qt::AscendingOrder);
+    m_renameFileButton = new QPushButton("Rename selected file", this);
 
     filesLayout->addWidget(new QLabel("File Explorer", this));
     filesLayout->addWidget(m_filesTree, 1);
+    filesLayout->addWidget(m_renameFileButton);
 
     m_timelineTab = new QWidget(this);
     m_timelineTab->setObjectName("FilesCard");
@@ -842,6 +844,39 @@ void MainWindow::setupConnections()
             return;
         }
         QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+    });
+
+    connect(m_renameFileButton, &QPushButton::clicked, this, [this]() {
+        const QModelIndex index = m_filesTree->currentIndex();
+        if (!index.isValid()) {
+            return;
+        }
+
+        const QString path = m_fileModel->filePath(index);
+        const QFileInfo info(path);
+        if (!info.exists() || !info.isFile()) {
+            return;
+        }
+
+        const QString proposedName = QInputDialog::getText(this, "Rename File", "New file name:", QLineEdit::Normal, info.fileName()).trimmed();
+        if (proposedName.isEmpty() || proposedName == info.fileName()) {
+            return;
+        }
+
+        const QString newPath = info.dir().filePath(proposedName);
+        if (QFile::exists(newPath)) {
+            QMessageBox::warning(this, "Rename failed", "A file with that name already exists.");
+            return;
+        }
+
+        if (!QFile::rename(path, newPath)) {
+            QMessageBox::warning(this, "Rename failed", "Could not rename file.");
+            return;
+        }
+
+        refreshFilesWorkspace();
+        refreshList();
+        statusBar()->showMessage("File renamed.", 2200);
     });
 
     connect(m_timelineList, &QListWidget::itemDoubleClicked, this, [this](QListWidgetItem *item) {
