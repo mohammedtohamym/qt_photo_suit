@@ -5,6 +5,7 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QImage>
+#include <QJsonObject>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
@@ -41,6 +42,8 @@ private:
     void refreshFilesWorkspace();
     void refreshTimelineWorkspace();
     void loadEditorPhoto(const QString &path);
+    void applyRecipeToEditorControls(const QJsonObject &recipe);
+    QJsonObject currentEditorRecipe() const;
     void applyEditorAdjustments();
     void updateEditorPreview();
     QImage makeEditedImage() const;
@@ -150,6 +153,7 @@ private:
     QVector<QImage> m_editorUndoStack;
     QVector<QImage> m_editorRedoStack;
     QMap<QString, QImage> m_editorSnapshots;
+    QString m_editorPhotoPath;
 
     QMenu *m_recentFoldersMenu = nullptr;
     QStringList m_recentFolders;

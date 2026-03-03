@@ -1873,6 +1873,7 @@ void MainWindow::clearDetails()
     m_editorSnapshotsList->clear();
     m_editorBeforeAfterButton->setChecked(false);
     m_editorShowOriginal = false;
+    m_editorPhotoPath.clear();
     m_editorPreviewLabel->setText("Editor preview (select a photo)");
     m_editorPreviewLabel->setPixmap(QPixmap());
 }
@@ -1888,6 +1889,7 @@ void MainWindow::setUnsavedChanges(bool value)
 
 void MainWindow::loadEditorPhoto(const QString &path)
 {
+    m_editorPhotoPath.clear();
     if (path.isEmpty()) {
         m_editorOriginalImage = QImage();
         m_editorPreviewImage = QImage();
@@ -1899,6 +1901,8 @@ void MainWindow::loadEditorPhoto(const QString &path)
     if (loaded.isNull()) {
         return;
     }
+
+    m_editorPhotoPath = QDir::cleanPath(path);
 
     m_editorOriginalImage = loaded.convertToFormat(QImage::Format_RGB32);
     m_editorUndoStack.clear();
@@ -1935,13 +1939,73 @@ void MainWindow::loadEditorPhoto(const QString &path)
     m_grayscaleCheck->blockSignals(false);
     m_sepiaCheck->blockSignals(false);
 
+    const QJsonObject savedRecipe = m_library.editRecipeForPhoto(m_editorPhotoPath);
+    if (!savedRecipe.isEmpty()) {
+        applyRecipeToEditorControls(savedRecipe);
+        return;
+    }
+
     applyEditorAdjustments();
+}
+
+void MainWindow::applyRecipeToEditorControls(const QJsonObject &recipe)
+{
+    m_brightnessSlider->blockSignals(true);
+    m_contrastSlider->blockSignals(true);
+    m_saturationSlider->blockSignals(true);
+    m_temperatureSlider->blockSignals(true);
+    m_vignetteSlider->blockSignals(true);
+    m_sharpenSlider->blockSignals(true);
+    m_blurSlider->blockSignals(true);
+    m_grayscaleCheck->blockSignals(true);
+    m_sepiaCheck->blockSignals(true);
+
+    m_brightnessSlider->setValue(qBound(-100, recipe.value("brightness").toInt(0), 100));
+    m_contrastSlider->setValue(qBound(-100, recipe.value("contrast").toInt(0), 100));
+    m_saturationSlider->setValue(qBound(-100, recipe.value("saturation").toInt(0), 100));
+    m_temperatureSlider->setValue(qBound(-100, recipe.value("temperature").toInt(0), 100));
+    m_vignetteSlider->setValue(qBound(0, recipe.value("vignette").toInt(0), 100));
+    m_sharpenSlider->setValue(qBound(0, recipe.value("sharpen").toInt(0), 100));
+    m_blurSlider->setValue(qBound(0, recipe.value("blur").toInt(0), 100));
+    m_grayscaleCheck->setChecked(recipe.value("grayscale").toBool(false));
+    m_sepiaCheck->setChecked(recipe.value("sepia").toBool(false));
+
+    m_brightnessSlider->blockSignals(false);
+    m_contrastSlider->blockSignals(false);
+    m_saturationSlider->blockSignals(false);
+    m_temperatureSlider->blockSignals(false);
+    m_vignetteSlider->blockSignals(false);
+    m_sharpenSlider->blockSignals(false);
+    m_blurSlider->blockSignals(false);
+    m_grayscaleCheck->blockSignals(false);
+    m_sepiaCheck->blockSignals(false);
+
+    applyEditorAdjustments();
+}
+
+QJsonObject MainWindow::currentEditorRecipe() const
+{
+    QJsonObject recipe;
+    recipe.insert("brightness", m_brightnessSlider->value());
+    recipe.insert("contrast", m_contrastSlider->value());
+    recipe.insert("saturation", m_saturationSlider->value());
+    recipe.insert("temperature", m_temperatureSlider->value());
+    recipe.insert("vignette", m_vignetteSlider->value());
+    recipe.insert("sharpen", m_sharpenSlider->value());
+    recipe.insert("blur", m_blurSlider->value());
+    recipe.insert("grayscale", m_grayscaleCheck->isChecked());
+    recipe.insert("sepia", m_sepiaCheck->isChecked());
+    return recipe;
 }
 
 void MainWindow::applyEditorAdjustments()
 {
     m_editorPreviewImage = makeEditedImage();
     updateEditorPreview();
+
+    if (!m_editorPhotoPath.isEmpty() && m_library.contains(m_editorPhotoPath)) {
+        m_library.setEditRecipe(m_editorPhotoPath, currentEditorRecipe());
+    }
 }
 
 QImage MainWindow::makeEditedImage() const
