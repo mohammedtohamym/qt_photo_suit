@@ -148,6 +148,9 @@ private:
     QPushButton *m_editorSaveSnapshotButton = nullptr;
     QListWidget *m_editorSnapshotsList = nullptr;
     QComboBox *m_editorExportPresetCombo = nullptr;
+    QComboBox *m_editorRecipePresetCombo = nullptr;
+    QPushButton *m_editorSaveRecipePresetButton = nullptr;
+    QPushButton *m_editorApplyRecipePresetButton = nullptr;
     QImage m_editorOriginalImage;
     QImage m_editorPreviewImage;
     QVector<QImage> m_editorUndoStack;

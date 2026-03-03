@@ -37,6 +37,7 @@
 #include <QVBoxLayout>
 
 #include <QHash>
+#include <QJsonDocument>
 
 #include <algorithm>
 #include <cmath>
@@ -449,6 +450,10 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     m_editorSnapshotsList->setMinimumHeight(120);
     m_editorExportPresetCombo = new QComboBox(this);
     m_editorExportPresetCombo->addItems({"Original Quality", "Web (80)", "High (95)", "PNG Lossless"});
+    m_editorRecipePresetCombo = new QComboBox(this);
+    m_editorRecipePresetCombo->setMinimumWidth(170);
+    m_editorSaveRecipePresetButton = new QPushButton("Save Recipe", this);
+    m_editorApplyRecipePresetButton = new QPushButton("Apply Recipe", this);
 
     auto *editorActions = new QHBoxLayout();
     editorActions->addWidget(m_editorCropSquareButton);
@@ -459,6 +464,9 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     editorActions->addWidget(m_editorAutoEnhanceButton);
     editorActions->addWidget(m_editorBeforeAfterButton);
     editorActions->addWidget(m_editorResetButton);
+    editorActions->addWidget(m_editorRecipePresetCombo);
+    editorActions->addWidget(m_editorSaveRecipePresetButton);
+    editorActions->addWidget(m_editorApplyRecipePresetButton);
     editorActions->addStretch(1);
     editorActions->addWidget(m_editorExportPresetCombo);
     editorActions->addWidget(m_editorSaveSnapshotButton);
@@ -1346,6 +1354,72 @@ void MainWindow::setupConnections()
             m_editorSnapshotsList->addItem(snapshotName);
         }
         statusBar()->showMessage("Snapshot saved.", 2000);
+    });
+
+    auto refreshRecipePresetUi = [this]() {
+        QSettings settings("PhotoOrganizerQt", "PhotoOrganizerQt");
+        const QString current = m_editorRecipePresetCombo->currentText();
+        const QStringList names = settings.value("editorRecipePresetNames").toStringList();
+        m_editorRecipePresetCombo->clear();
+        m_editorRecipePresetCombo->addItem("Recipe presets");
+        for (const auto &name : names) {
+            m_editorRecipePresetCombo->addItem(name);
+        }
+        if (!current.isEmpty()) {
+            const int idx = m_editorRecipePresetCombo->findText(current);
+            if (idx >= 0) {
+                m_editorRecipePresetCombo->setCurrentIndex(idx);
+            }
+        }
+    };
+
+    refreshRecipePresetUi();
+
+    connect(m_editorSaveRecipePresetButton, &QPushButton::clicked, this, [this, refreshRecipePresetUi]() {
+        const QString name = QInputDialog::getText(this, "Save Recipe Preset", "Preset name:").trimmed();
+        if (name.isEmpty()) {
+            return;
+        }
+
+        QSettings settings("PhotoOrganizerQt", "PhotoOrganizerQt");
+        QStringList names = settings.value("editorRecipePresetNames").toStringList();
+        if (!names.contains(name)) {
+            names.push_back(name);
+            settings.setValue("editorRecipePresetNames", names);
+        }
+
+        const QJsonDocument doc(currentEditorRecipe());
+        settings.setValue(QString("editorRecipePreset/%1").arg(name), QString::fromUtf8(doc.toJson(QJsonDocument::Compact)));
+        refreshRecipePresetUi();
+        const int idx = m_editorRecipePresetCombo->findText(name);
+        if (idx >= 0) {
+            m_editorRecipePresetCombo->setCurrentIndex(idx);
+        }
+        statusBar()->showMessage("Recipe preset saved.", 2000);
+    });
+
+    connect(m_editorApplyRecipePresetButton, &QPushButton::clicked, this, [this]() {
+        const QString name = m_editorRecipePresetCombo->currentText().trimmed();
+        if (name.isEmpty() || name == "Recipe presets") {
+            return;
+        }
+
+        QSettings settings("PhotoOrganizerQt", "PhotoOrganizerQt");
+        const QString raw = settings.value(QString("editorRecipePreset/%1").arg(name)).toString();
+        if (raw.isEmpty()) {
+            QMessageBox::warning(this, "Preset missing", "Selected recipe preset could not be loaded.");
+            return;
+        }
+
+        QJsonParseError error;
+        const QJsonDocument doc = QJsonDocument::fromJson(raw.toUtf8(), &error);
+        if (error.error != QJsonParseError::NoError || !doc.isObject()) {
+            QMessageBox::warning(this, "Preset invalid", "Selected recipe preset is invalid.");
+            return;
+        }
+
+        applyRecipeToEditorControls(doc.object());
+        statusBar()->showMessage("Recipe preset applied.", 2000);
     });
 
     connect(m_editorSnapshotsList, &QListWidget::itemDoubleClicked, this, [this](QListWidgetItem *item) {
