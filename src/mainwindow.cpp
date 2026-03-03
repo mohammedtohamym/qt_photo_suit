@@ -454,6 +454,7 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     m_editorRecipePresetCombo->setMinimumWidth(170);
     m_editorSaveRecipePresetButton = new QPushButton("Save Recipe", this);
     m_editorApplyRecipePresetButton = new QPushButton("Apply Recipe", this);
+    m_editorBatchApplyRecipeButton = new QPushButton("Apply to selected", this);
 
     auto *editorActions = new QHBoxLayout();
     editorActions->addWidget(m_editorCropSquareButton);
@@ -467,6 +468,7 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     editorActions->addWidget(m_editorRecipePresetCombo);
     editorActions->addWidget(m_editorSaveRecipePresetButton);
     editorActions->addWidget(m_editorApplyRecipePresetButton);
+    editorActions->addWidget(m_editorBatchApplyRecipeButton);
     editorActions->addStretch(1);
     editorActions->addWidget(m_editorExportPresetCombo);
     editorActions->addWidget(m_editorSaveSnapshotButton);
@@ -1420,6 +1422,30 @@ void MainWindow::setupConnections()
 
         applyRecipeToEditorControls(doc.object());
         statusBar()->showMessage("Recipe preset applied.", 2000);
+    });
+
+    connect(m_editorBatchApplyRecipeButton, &QPushButton::clicked, this, [this]() {
+        QJsonObject recipe = currentEditorRecipe();
+        QStringList targets = selectedPhotoPaths();
+        if (targets.isEmpty() && !m_editorPhotoPath.isEmpty()) {
+            targets.push_back(m_editorPhotoPath);
+        }
+
+        if (targets.isEmpty()) {
+            QMessageBox::information(this, "Batch apply", "Select one or more photos first.");
+            return;
+        }
+
+        int applied = 0;
+        for (const auto &path : targets) {
+            if (!m_library.contains(path)) {
+                continue;
+            }
+            m_library.setEditRecipe(path, recipe);
+            ++applied;
+        }
+
+        statusBar()->showMessage(QString("Recipe applied to %1 photo(s). ").arg(applied), 2200);
     });
 
     connect(m_editorSnapshotsList, &QListWidget::itemDoubleClicked, this, [this](QListWidgetItem *item) {

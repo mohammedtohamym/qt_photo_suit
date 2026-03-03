@@ -151,6 +151,7 @@ private:
     QComboBox *m_editorRecipePresetCombo = nullptr;
     QPushButton *m_editorSaveRecipePresetButton = nullptr;
     QPushButton *m_editorApplyRecipePresetButton = nullptr;
+    QPushButton *m_editorBatchApplyRecipeButton = nullptr;
     QImage m_editorOriginalImage;
     QImage m_editorPreviewImage;
     QVector<QImage> m_editorUndoStack;

@@ -6,5 +6,5 @@
 4. [x] Restore saved recipe when photo is selected
 5. [x] Save named global editor recipe presets
 6. [x] Apply named global recipe preset
-7. [ ] Batch-apply current recipe to selected photos
+7. [x] Batch-apply current recipe to selected photos
 8. [ ] Export library manifest JSON report
