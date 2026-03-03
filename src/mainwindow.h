@@ -14,6 +14,8 @@
 
 class QMenu;
 class QTimer;
+class QToolButton;
+class QAction;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -62,11 +64,13 @@ private:
     QSpinBox *m_ratingSpin = nullptr;
     QPushButton *m_saveButton = nullptr;
     QPushButton *m_openPhotoButton = nullptr;
+    QPushButton *m_openLocationButton = nullptr;
     QPushButton *m_copyPathButton = nullptr;
     QPushButton *m_slideshowButton = nullptr;
-    QPushButton *m_bulkAddTagsButton = nullptr;
-    QPushButton *m_bulkFavoriteButton = nullptr;
-    QPushButton *m_bulkRatingButton = nullptr;
+    QToolButton *m_bulkActionsButton = nullptr;
+    QAction *m_bulkAddTagsAction = nullptr;
+    QAction *m_bulkFavoriteAction = nullptr;
+    QAction *m_bulkRatingAction = nullptr;
 
     QMenu *m_recentFoldersMenu = nullptr;
     QStringList m_recentFolders;

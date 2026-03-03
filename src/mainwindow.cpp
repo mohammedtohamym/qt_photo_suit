@@ -10,6 +10,7 @@
 #include <QFile>
 #include <QHBoxLayout>
 #include <QListWidgetItem>
+#include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QPixmap>
@@ -23,6 +24,7 @@
 #include <QTimer>
 #include <QTextStream>
 #include <QToolBar>
+#include <QToolButton>
 #include <QUrl>
 #include <QVBoxLayout>
 
@@ -48,39 +50,69 @@ void MainWindow::setupUi()
     setWindowTitle("Photo Organizer (Qt)[*]");
     resize(1200, 760);
     setStyleSheet(
-        "QMainWindow { background: #111827; }"
-        "QWidget { color: #e5e7eb; font-size: 13px; }"
-        "QLabel { color: #d1d5db; }"
-        "QLineEdit, QSpinBox, QListWidget {"
-        "  background: #1f2937; border: 1px solid #374151; border-radius: 8px;"
-        "  padding: 6px; color: #f9fafb;"
+        "QMainWindow {"
+        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #0b1020, stop:1 #111827);"
         "}"
-        "QLineEdit:focus, QSpinBox:focus { border: 1px solid #60a5fa; }"
+        "QWidget { color: #e6edf6; font-size: 13px; }"
+        "QLabel { color: #c9d6ea; }"
+        "QLineEdit, QSpinBox, QComboBox, QListWidget {"
+        "  background: rgba(17, 24, 39, 0.92);"
+        "  border: 1px solid #2f3f5c;"
+        "  border-radius: 10px;"
+        "  padding: 7px;"
+        "  color: #f8fbff;"
+        "}"
+        "QLineEdit:focus, QSpinBox:focus, QComboBox:focus { border: 1px solid #60a5fa; }"
         "QPushButton {"
-        "  background: #2563eb; border: none; border-radius: 8px;"
-        "  padding: 8px 12px; color: white; font-weight: 600;"
+        "  background: #1d4ed8;"
+        "  border: none;"
+        "  border-radius: 10px;"
+        "  padding: 8px 12px;"
+        "  color: #ffffff;"
+        "  font-weight: 600;"
         "}"
-        "QPushButton:hover { background: #3b82f6; }"
-        "QPushButton:disabled { background: #374151; color: #9ca3af; }"
+        "QPushButton:hover { background: #2563eb; }"
+        "QPushButton:disabled { background: #334155; color: #94a3b8; }"
+        "QToolButton {"
+        "  background: rgba(17, 24, 39, 0.8);"
+        "  border: 1px solid #2f3f5c;"
+        "  border-radius: 10px;"
+        "  padding: 6px 10px;"
+        "  color: #e2e8f0;"
+        "}"
+        "QToolButton::menu-indicator { image: none; width: 0px; }"
         "QCheckBox::indicator { width: 16px; height: 16px; }"
-        "QMenuBar, QMenu { background: #111827; color: #f9fafb; }"
-        "QMenu::item:selected { background: #1d4ed8; }"
-        "QStatusBar { background: #0b1220; color: #9ca3af; }"
+        "QMenuBar, QMenu { background: #0f172a; color: #f8fafc; }"
+        "QMenu::item:selected { background: #1e3a8a; }"
+        "QStatusBar { background: #0b1220; color: #94a3b8; }"
     );
 
     auto *central = new QWidget(this);
     auto *rootLayout = new QVBoxLayout(central);
-    rootLayout->setContentsMargins(14, 14, 14, 14);
-    rootLayout->setSpacing(10);
+    rootLayout->setContentsMargins(18, 18, 18, 18);
+    rootLayout->setSpacing(12);
 
-    auto *filtersLayout = new QHBoxLayout();
+    auto *filterCard = new QWidget(this);
+    auto *filterCardLayout = new QVBoxLayout(filterCard);
+    filterCardLayout->setContentsMargins(12, 12, 12, 12);
+    filterCardLayout->setSpacing(8);
+    filterCard->setStyleSheet("background: rgba(15, 23, 42, 0.82); border: 1px solid #23324a; border-radius: 14px;");
+
+    auto *searchRow = new QHBoxLayout();
+    searchRow->setSpacing(8);
     m_nameFilter = new QLineEdit(this);
-    m_nameFilter->setPlaceholderText("Search by file name...");
+    m_nameFilter->setPlaceholderText("Search photos by name...");
 
     m_tagFilter = new QLineEdit(this);
     m_tagFilter->setPlaceholderText("Filter by tag...");
 
     m_favoritesOnly = new QCheckBox("Favorites only", this);
+    searchRow->addWidget(m_nameFilter, 3);
+    searchRow->addWidget(m_tagFilter, 2);
+    searchRow->addWidget(m_favoritesOnly);
+
+    auto *controlsRow = new QHBoxLayout();
+    controlsRow->setSpacing(8);
     m_sortCombo = new QComboBox(this);
     m_sortCombo->addItems({"Name (A-Z)", "Name (Z-A)", "Rating (High-Low)", "Path"});
     m_viewModeCombo = new QComboBox(this);
@@ -93,19 +125,18 @@ void MainWindow::setupUi()
     m_thumbSizeSlider->setValue(140);
     m_thumbSizeSlider->setMaximumWidth(140);
 
-    filtersLayout->addWidget(new QLabel("Name:", this));
-    filtersLayout->addWidget(m_nameFilter, 2);
-    filtersLayout->addWidget(new QLabel("Tag:", this));
-    filtersLayout->addWidget(m_tagFilter, 2);
-    filtersLayout->addWidget(m_favoritesOnly);
-    filtersLayout->addWidget(new QLabel("View:", this));
-    filtersLayout->addWidget(m_viewModeCombo);
-    filtersLayout->addWidget(new QLabel("Sort:", this));
-    filtersLayout->addWidget(m_sortCombo);
-    filtersLayout->addWidget(new QLabel("Rating:", this));
-    filtersLayout->addWidget(m_minRatingFilter);
-    filtersLayout->addWidget(new QLabel("Thumb:", this));
-    filtersLayout->addWidget(m_thumbSizeSlider);
+    controlsRow->addWidget(new QLabel("View", this));
+    controlsRow->addWidget(m_viewModeCombo);
+    controlsRow->addWidget(new QLabel("Sort", this));
+    controlsRow->addWidget(m_sortCombo, 2);
+    controlsRow->addWidget(new QLabel("Min rating", this));
+    controlsRow->addWidget(m_minRatingFilter);
+    controlsRow->addWidget(new QLabel("Thumb", this));
+    controlsRow->addWidget(m_thumbSizeSlider);
+    controlsRow->addStretch(1);
+
+    filterCardLayout->addLayout(searchRow);
+    filterCardLayout->addLayout(controlsRow);
 
     auto *splitter = new QSplitter(Qt::Horizontal, this);
 
@@ -120,17 +151,19 @@ void MainWindow::setupUi()
 
     auto *detailsPanel = new QWidget(this);
     auto *detailsLayout = new QVBoxLayout(detailsPanel);
-    detailsLayout->setContentsMargins(8, 8, 8, 8);
-    detailsLayout->setSpacing(8);
+    detailsLayout->setContentsMargins(12, 12, 12, 12);
+    detailsLayout->setSpacing(10);
+    detailsPanel->setStyleSheet("background: rgba(15, 23, 42, 0.82); border: 1px solid #23324a; border-radius: 14px;");
 
     m_previewLabel = new QLabel(this);
-    m_previewLabel->setMinimumSize(400, 300);
+    m_previewLabel->setMinimumSize(420, 300);
     m_previewLabel->setAlignment(Qt::AlignCenter);
     m_previewLabel->setText("No photo selected");
-    m_previewLabel->setFrameStyle(QFrame::StyledPanel);
+    m_previewLabel->setStyleSheet("background: rgba(15,23,42,0.7); border: 1px solid #2f3f5c; border-radius: 12px;");
 
     m_pathLabel = new QLabel(this);
     m_pathLabel->setWordWrap(true);
+    m_pathLabel->setStyleSheet("color: #93a4bf;");
 
     m_tagsEdit = new QLineEdit(this);
     m_tagsEdit->setPlaceholderText("comma,separated,tags");
@@ -146,15 +179,35 @@ void MainWindow::setupUi()
     m_ratingSpin->setPrefix("Rating: ");
 
     m_saveButton = new QPushButton("Save metadata", this);
-    m_bulkAddTagsButton = new QPushButton("Bulk add tags to selected", this);
-    m_bulkFavoriteButton = new QPushButton("Apply favorite to selected", this);
-    m_bulkRatingButton = new QPushButton("Apply rating to selected", this);
+    m_saveButton->setText("Save Changes");
     m_openPhotoButton = new QPushButton("Open selected photo", this);
+    m_openLocationButton = new QPushButton("Open location", this);
     m_copyPathButton = new QPushButton("Copy selected path", this);
-    m_slideshowButton = new QPushButton("Start slideshow", this);
+    m_slideshowButton = new QPushButton("Slideshow");
+    m_bulkActionsButton = new QToolButton(this);
+    m_bulkActionsButton->setText("Bulk Actions");
+    m_bulkActionsButton->setPopupMode(QToolButton::InstantPopup);
+    auto *bulkMenu = new QMenu(m_bulkActionsButton);
+    m_bulkAddTagsAction = bulkMenu->addAction("Add tags to selected");
+    m_bulkFavoriteAction = bulkMenu->addAction("Apply favorite to selected");
+    m_bulkRatingAction = bulkMenu->addAction("Apply rating to selected");
+    m_bulkActionsButton->setMenu(bulkMenu);
+
     m_slideshowTimer = new QTimer(this);
     m_slideshowTimer->setInterval(2000);
-    auto *openInExplorerButton = new QPushButton("Open photo location", this);
+
+    auto *quickActionsRow = new QHBoxLayout();
+    quickActionsRow->setSpacing(8);
+    quickActionsRow->addWidget(m_openPhotoButton);
+    quickActionsRow->addWidget(m_openLocationButton);
+    quickActionsRow->addWidget(m_copyPathButton);
+    quickActionsRow->addWidget(m_slideshowButton);
+
+    auto *saveRow = new QHBoxLayout();
+    saveRow->setSpacing(8);
+    saveRow->addWidget(m_bulkActionsButton);
+    saveRow->addStretch(1);
+    saveRow->addWidget(m_saveButton);
 
     detailsLayout->addWidget(m_previewLabel, 1);
     detailsLayout->addWidget(new QLabel("Path:", this));
@@ -164,16 +217,10 @@ void MainWindow::setupUi()
     detailsLayout->addWidget(m_autoSaveCheck);
     detailsLayout->addWidget(new QLabel("Bulk Tags:", this));
     detailsLayout->addWidget(m_bulkTagsEdit);
-    detailsLayout->addWidget(m_bulkAddTagsButton);
     detailsLayout->addWidget(m_favoriteCheck);
-    detailsLayout->addWidget(m_bulkFavoriteButton);
     detailsLayout->addWidget(m_ratingSpin);
-    detailsLayout->addWidget(m_bulkRatingButton);
-    detailsLayout->addWidget(m_openPhotoButton);
-    detailsLayout->addWidget(m_copyPathButton);
-    detailsLayout->addWidget(m_slideshowButton);
-    detailsLayout->addWidget(m_saveButton);
-    detailsLayout->addWidget(openInExplorerButton);
+    detailsLayout->addLayout(quickActionsRow);
+    detailsLayout->addLayout(saveRow);
     detailsLayout->addStretch();
 
     splitter->addWidget(m_photoList);
@@ -181,11 +228,11 @@ void MainWindow::setupUi()
     splitter->setStretchFactor(0, 2);
     splitter->setStretchFactor(1, 1);
 
-    rootLayout->addLayout(filtersLayout);
+    rootLayout->addWidget(filterCard);
     rootLayout->addWidget(splitter, 1);
     setCentralWidget(central);
 
-    connect(openInExplorerButton, &QPushButton::clicked, this, [this]() {
+    connect(m_openLocationButton, &QPushButton::clicked, this, [this]() {
         const QString path = currentPhotoPath();
         if (path.isEmpty()) {
             return;
@@ -242,12 +289,20 @@ void MainWindow::setupToolbar()
 {
     auto *toolbar = addToolBar("Quick Actions");
     toolbar->setMovable(false);
+    toolbar->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    toolbar->setIconSize(QSize(18, 18));
 
     auto *openAction = toolbar->addAction(style()->standardIcon(QStyle::SP_DirOpenIcon), "Open");
     auto *refreshAction = toolbar->addAction(style()->standardIcon(QStyle::SP_BrowserReload), "Refresh");
     auto *randomAction = toolbar->addAction(style()->standardIcon(QStyle::SP_BrowserStop), "Random");
     auto *exportCsvAction = toolbar->addAction(style()->standardIcon(QStyle::SP_DialogSaveButton), "Export CSV");
     auto *clearFiltersAction = toolbar->addAction(style()->standardIcon(QStyle::SP_DialogResetButton), "Clear Filters");
+
+    openAction->setToolTip("Open folder");
+    refreshAction->setToolTip("Refresh library");
+    randomAction->setToolTip("Jump to random photo");
+    exportCsvAction->setToolTip("Export visible photos to CSV");
+    clearFiltersAction->setToolTip("Clear all filters");
 
     connect(openAction, &QAction::triggered, this, &MainWindow::openFolder);
     connect(refreshAction, &QAction::triggered, this, &MainWindow::refreshList);
@@ -359,6 +414,10 @@ void MainWindow::setupConnections()
         loadSelectionDetails();
     });
 
+    connect(m_photoList, &QListWidget::itemSelectionChanged, this, [this]() {
+        m_bulkActionsButton->setEnabled(!selectedPhotoPaths().isEmpty());
+    });
+
     connect(m_photoList, &QListWidget::itemDoubleClicked, this, [this](QListWidgetItem *item) {
         if (!item) {
             return;
@@ -373,7 +432,7 @@ void MainWindow::setupConnections()
         statusBar()->showMessage("Photo metadata saved.", 2500);
     });
 
-    connect(m_bulkAddTagsButton, &QPushButton::clicked, this, [this]() {
+    connect(m_bulkAddTagsAction, &QAction::triggered, this, [this]() {
         const QStringList selected = selectedPhotoPaths();
         const QStringList newTags = parseTags(m_bulkTagsEdit->text());
 
@@ -409,7 +468,7 @@ void MainWindow::setupConnections()
         statusBar()->showMessage("Bulk tags applied.", 2500);
     });
 
-    connect(m_bulkFavoriteButton, &QPushButton::clicked, this, [this]() {
+    connect(m_bulkFavoriteAction, &QAction::triggered, this, [this]() {
         const QStringList selected = selectedPhotoPaths();
         if (selected.isEmpty()) {
             return;
@@ -425,7 +484,7 @@ void MainWindow::setupConnections()
         statusBar()->showMessage("Bulk favorite applied.", 2500);
     });
 
-    connect(m_bulkRatingButton, &QPushButton::clicked, this, [this]() {
+    connect(m_bulkRatingAction, &QAction::triggered, this, [this]() {
         const QStringList selected = selectedPhotoPaths();
         if (selected.isEmpty()) {
             return;
@@ -461,14 +520,14 @@ void MainWindow::setupConnections()
     connect(m_slideshowButton, &QPushButton::clicked, this, [this]() {
         if (m_slideshowTimer->isActive()) {
             m_slideshowTimer->stop();
-            m_slideshowButton->setText("Start slideshow");
+            m_slideshowButton->setText("Slideshow");
             return;
         }
         if (m_photoList->count() == 0) {
             return;
         }
         m_slideshowTimer->start();
-        m_slideshowButton->setText("Stop slideshow");
+        m_slideshowButton->setText("Stop");
     });
 
     connect(m_slideshowTimer, &QTimer::timeout, this, [this]() {
@@ -706,6 +765,11 @@ void MainWindow::loadSelectionDetails()
     m_isLoadingSelection = false;
     setUnsavedChanges(false);
     m_saveButton->setEnabled(true);
+    m_openPhotoButton->setEnabled(true);
+    m_openLocationButton->setEnabled(true);
+    m_copyPathButton->setEnabled(true);
+    m_slideshowButton->setEnabled(true);
+    m_bulkActionsButton->setEnabled(!selectedPhotoPaths().isEmpty());
 }
 
 void MainWindow::clearDetails()
@@ -720,6 +784,11 @@ void MainWindow::clearDetails()
     m_isLoadingSelection = false;
     setUnsavedChanges(false);
     m_saveButton->setEnabled(false);
+    m_openPhotoButton->setEnabled(false);
+    m_openLocationButton->setEnabled(false);
+    m_copyPathButton->setEnabled(false);
+    m_slideshowButton->setEnabled(m_photoList->count() > 0);
+    m_bulkActionsButton->setEnabled(false);
 }
 
 void MainWindow::setUnsavedChanges(bool value)
