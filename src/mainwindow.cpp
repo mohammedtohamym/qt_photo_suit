@@ -14,6 +14,7 @@
 #include <QPixmap>
 #include <QShortcut>
 #include <QSplitter>
+#include <QSettings>
 #include <QStandardPaths>
 #include <QStatusBar>
 #include <QStyle>
@@ -192,8 +193,32 @@ void MainWindow::setupMenu()
     connect(quitAction, &QAction::triggered, this, &QWidget::close);
 
     fileMenu->addAction(openAction);
+    m_recentFoldersMenu = fileMenu->addMenu("Recent Folders");
+    m_recentFolders = QSettings("PhotoOrganizerQt", "PhotoOrganizerQt").value("recentFolders").toStringList();
+    updateRecentFoldersMenu();
     fileMenu->addSeparator();
     fileMenu->addAction(quitAction);
+}
+
+void MainWindow::updateRecentFoldersMenu()
+{
+    if (!m_recentFoldersMenu) {
+        return;
+    }
+
+    m_recentFoldersMenu->clear();
+    if (m_recentFolders.isEmpty()) {
+        auto *emptyAction = m_recentFoldersMenu->addAction("(No recent folders)");
+        emptyAction->setEnabled(false);
+        return;
+    }
+
+    for (const auto &folderPath : m_recentFolders) {
+        auto *action = m_recentFoldersMenu->addAction(folderPath);
+        connect(action, &QAction::triggered, this, [this, folderPath]() {
+            openFolderPath(folderPath);
+        });
+    }
 }
 
 void MainWindow::setupToolbar()
@@ -383,7 +408,16 @@ void MainWindow::openFolder()
         return;
     }
 
-    if (!m_library.loadFolder(selected)) {
+    openFolderPath(selected);
+}
+
+void MainWindow::openFolderPath(const QString &folderPath)
+{
+    if (folderPath.isEmpty()) {
+        return;
+    }
+
+    if (!m_library.loadFolder(folderPath)) {
         QMessageBox::warning(this, "Failed", "Could not open the selected folder.");
         return;
     }
@@ -393,9 +427,17 @@ void MainWindow::openFolder()
     m_favoritesOnly->setChecked(false);
 
     refreshList();
+    m_recentFolders.removeAll(folderPath);
+    m_recentFolders.prepend(folderPath);
+    while (m_recentFolders.size() > 10) {
+        m_recentFolders.removeLast();
+    }
+    QSettings("PhotoOrganizerQt", "PhotoOrganizerQt").setValue("recentFolders", m_recentFolders);
+    updateRecentFoldersMenu();
+
     statusBar()->showMessage(QString("Loaded %1 photos from %2")
                                  .arg(m_library.allItems().size())
-                                 .arg(selected),
+                                 .arg(folderPath),
                              4000);
 }
 

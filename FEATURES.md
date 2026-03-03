@@ -15,7 +15,7 @@ The following 20 features are implemented one-by-one with one Git commit per fea
 11. [x] Keyboard shortcuts for next/previous photo
 12. [x] Open selected photo button
 13. [x] Copy selected photo path button
-14. [ ] Recent folders menu persistence
+14. [x] Recent folders menu persistence
 15. [ ] Auto-load last opened folder on startup
 16. [ ] Unsaved changes indicator in status bar
 17. [ ] Optional auto-save metadata mode

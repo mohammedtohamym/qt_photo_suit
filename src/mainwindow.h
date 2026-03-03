@@ -12,6 +12,8 @@
 #include <QSlider>
 #include <QSpinBox>
 
+class QMenu;
+
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
@@ -23,8 +25,10 @@ private:
     void setupMenu();
     void setupToolbar();
     void setupConnections();
+    void updateRecentFoldersMenu();
 
     void openFolder();
+    void openFolderPath(const QString &folderPath);
     void refreshList();
     void loadSelectionDetails();
     void clearDetails();
@@ -58,4 +62,7 @@ private:
     QPushButton *m_bulkAddTagsButton = nullptr;
     QPushButton *m_bulkFavoriteButton = nullptr;
     QPushButton *m_bulkRatingButton = nullptr;
+
+    QMenu *m_recentFoldersMenu = nullptr;
+    QStringList m_recentFolders;
 };
