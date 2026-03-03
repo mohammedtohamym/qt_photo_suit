@@ -36,6 +36,8 @@
 #include <QUrl>
 #include <QVBoxLayout>
 
+#include <QHash>
+
 #include <algorithm>
 #include <cmath>
 
@@ -332,10 +334,17 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     m_filesTree->setSortingEnabled(true);
     m_filesTree->sortByColumn(0, Qt::AscendingOrder);
     m_renameFileButton = new QPushButton("Rename selected file", this);
+    m_scanDuplicatesButton = new QPushButton("Scan duplicates", this);
+    m_duplicatesList = new QListWidget(this);
+    m_duplicatesList->setMinimumHeight(140);
+    m_duplicatesList->setSelectionMode(QAbstractItemView::SingleSelection);
 
     filesLayout->addWidget(new QLabel("File Explorer", this));
     filesLayout->addWidget(m_filesTree, 1);
     filesLayout->addWidget(m_renameFileButton);
+    filesLayout->addWidget(m_scanDuplicatesButton);
+    filesLayout->addWidget(new QLabel("Likely duplicates", this));
+    filesLayout->addWidget(m_duplicatesList);
 
     m_timelineTab = new QWidget(this);
     m_timelineTab->setObjectName("FilesCard");
@@ -880,6 +889,48 @@ void MainWindow::setupConnections()
     });
 
     connect(m_timelineList, &QListWidget::itemDoubleClicked, this, [this](QListWidgetItem *item) {
+        if (!item) {
+            return;
+        }
+        const QString path = item->data(Qt::UserRole).toString();
+        if (!path.isEmpty()) {
+            QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+        }
+    });
+
+    connect(m_scanDuplicatesButton, &QPushButton::clicked, this, [this]() {
+        m_duplicatesList->clear();
+
+        QHash<QString, QStringList> grouped;
+        for (const auto &photo : m_library.allItems()) {
+            const QFileInfo info(photo.absolutePath);
+            const QString key = QString("%1|%2").arg(info.size()).arg(info.fileName().toLower());
+            grouped[key].push_back(photo.absolutePath);
+        }
+
+        int groupCount = 0;
+        for (auto it = grouped.begin(); it != grouped.end(); ++it) {
+            if (it.value().size() < 2) {
+                continue;
+            }
+            ++groupCount;
+            auto *header = new QListWidgetItem(QString("Group %1 (%2 files)").arg(groupCount).arg(it.value().size()), m_duplicatesList);
+            header->setFlags(Qt::NoItemFlags);
+            for (const auto &path : it.value()) {
+                auto *item = new QListWidgetItem(QString("  %1").arg(QFileInfo(path).fileName()), m_duplicatesList);
+                item->setData(Qt::UserRole, path);
+                item->setToolTip(path);
+            }
+        }
+
+        if (groupCount == 0) {
+            m_duplicatesList->addItem("No duplicate groups found.");
+        }
+
+        statusBar()->showMessage(QString("Duplicate scan complete: %1 groups").arg(groupCount), 2500);
+    });
+
+    connect(m_duplicatesList, &QListWidget::itemDoubleClicked, this, [this](QListWidgetItem *item) {
         if (!item) {
             return;
         }
