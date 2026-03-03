@@ -41,6 +41,7 @@ private:
     QComboBox *m_sortCombo = nullptr;
     QComboBox *m_viewModeCombo = nullptr;
     QSlider *m_thumbSizeSlider = nullptr;
+    QSpinBox *m_minRatingFilter = nullptr;
 
     QListWidget *m_photoList = nullptr;
 

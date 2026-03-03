@@ -7,7 +7,7 @@ The following 20 features are implemented one-by-one with one Git commit per fea
 3. [x] Sort selector (name/rating/path)
 4. [x] Thumbnail size slider
 5. [x] Grid/List view mode toggle
-6. [ ] Minimum rating filter
+6. [x] Minimum rating filter
 7. [ ] Multi-selection support
 8. [ ] Bulk add tags for selected photos
 9. [ ] Bulk favorite toggle for selected photos

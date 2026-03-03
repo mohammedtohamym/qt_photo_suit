@@ -70,6 +70,9 @@ void MainWindow::setupUi()
     m_sortCombo->addItems({"Name (A-Z)", "Name (Z-A)", "Rating (High-Low)", "Path"});
     m_viewModeCombo = new QComboBox(this);
     m_viewModeCombo->addItems({"Grid", "List"});
+    m_minRatingFilter = new QSpinBox(this);
+    m_minRatingFilter->setRange(0, 5);
+    m_minRatingFilter->setPrefix("Min ");
     m_thumbSizeSlider = new QSlider(Qt::Horizontal, this);
     m_thumbSizeSlider->setRange(80, 220);
     m_thumbSizeSlider->setValue(140);
@@ -84,6 +87,8 @@ void MainWindow::setupUi()
     filtersLayout->addWidget(m_viewModeCombo);
     filtersLayout->addWidget(new QLabel("Sort:", this));
     filtersLayout->addWidget(m_sortCombo);
+    filtersLayout->addWidget(new QLabel("Rating:", this));
+    filtersLayout->addWidget(m_minRatingFilter);
     filtersLayout->addWidget(new QLabel("Thumb:", this));
     filtersLayout->addWidget(m_thumbSizeSlider);
 
@@ -201,6 +206,9 @@ void MainWindow::setupConnections()
     connect(m_viewModeCombo, &QComboBox::currentTextChanged, this, [this]() {
         refreshList();
     });
+    connect(m_minRatingFilter, &QSpinBox::valueChanged, this, [this](int) {
+        refreshList();
+    });
     connect(m_thumbSizeSlider, &QSlider::valueChanged, this, [this](int value) {
         m_photoList->setIconSize(QSize(value, value));
         refreshList();
@@ -309,7 +317,13 @@ void MainWindow::refreshList()
     const int thumbSize = m_thumbSizeSlider->value();
     m_photoList->setIconSize(QSize(thumbSize, thumbSize));
 
+    const int minimumRating = m_minRatingFilter->value();
+
     for (const auto &item : items) {
+        if (item.rating < minimumRating) {
+            continue;
+        }
+
         auto *listItem = new QListWidgetItem(m_photoList);
 
         const QPixmap pix(item.absolutePath);
