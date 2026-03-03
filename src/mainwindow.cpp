@@ -134,6 +134,7 @@ void MainWindow::setupUi()
     m_bulkAddTagsButton = new QPushButton("Bulk add tags to selected", this);
     m_bulkFavoriteButton = new QPushButton("Apply favorite to selected", this);
     m_bulkRatingButton = new QPushButton("Apply rating to selected", this);
+    m_openPhotoButton = new QPushButton("Open selected photo", this);
     auto *openInExplorerButton = new QPushButton("Open photo location", this);
 
     detailsLayout->addWidget(m_previewLabel, 1);
@@ -148,6 +149,7 @@ void MainWindow::setupUi()
     detailsLayout->addWidget(m_bulkFavoriteButton);
     detailsLayout->addWidget(m_ratingSpin);
     detailsLayout->addWidget(m_bulkRatingButton);
+    detailsLayout->addWidget(m_openPhotoButton);
     detailsLayout->addWidget(m_saveButton);
     detailsLayout->addWidget(openInExplorerButton);
     detailsLayout->addStretch();
@@ -341,6 +343,14 @@ void MainWindow::setupConnections()
         refreshList();
         loadSelectionDetails();
         statusBar()->showMessage("Bulk rating applied.", 2500);
+    });
+
+    connect(m_openPhotoButton, &QPushButton::clicked, this, [this]() {
+        const QString path = currentPhotoPath();
+        if (path.isEmpty()) {
+            return;
+        }
+        QDesktopServices::openUrl(QUrl::fromLocalFile(path));
     });
 }
 
