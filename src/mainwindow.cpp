@@ -335,6 +335,7 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     m_filesTree->sortByColumn(0, Qt::AscendingOrder);
     m_renameFileButton = new QPushButton("Rename selected file", this);
     m_scanDuplicatesButton = new QPushButton("Scan duplicates", this);
+    m_openContainingFolderButton = new QPushButton("Open containing folder", this);
     m_duplicatesList = new QListWidget(this);
     m_duplicatesList->setMinimumHeight(140);
     m_duplicatesList->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -342,6 +343,7 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     filesLayout->addWidget(new QLabel("File Explorer", this));
     filesLayout->addWidget(m_filesTree, 1);
     filesLayout->addWidget(m_renameFileButton);
+    filesLayout->addWidget(m_openContainingFolderButton);
     filesLayout->addWidget(m_scanDuplicatesButton);
     filesLayout->addWidget(new QLabel("Likely duplicates", this));
     filesLayout->addWidget(m_duplicatesList);
@@ -886,6 +888,20 @@ void MainWindow::setupConnections()
         refreshFilesWorkspace();
         refreshList();
         statusBar()->showMessage("File renamed.", 2200);
+    });
+
+    connect(m_openContainingFolderButton, &QPushButton::clicked, this, [this]() {
+        const QModelIndex index = m_filesTree->currentIndex();
+        if (!index.isValid()) {
+            return;
+        }
+
+        const QString path = m_fileModel->filePath(index);
+        const QFileInfo info(path);
+        const QString dirPath = info.isDir() ? info.absoluteFilePath() : info.absolutePath();
+        if (!dirPath.isEmpty()) {
+            QDesktopServices::openUrl(QUrl::fromLocalFile(dirPath));
+        }
     });
 
     connect(m_timelineList, &QListWidget::itemDoubleClicked, this, [this](QListWidgetItem *item) {

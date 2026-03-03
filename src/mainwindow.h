@@ -104,6 +104,7 @@ private:
     QFileSystemModel *m_fileModel = nullptr;
     QPushButton *m_renameFileButton = nullptr;
     QPushButton *m_scanDuplicatesButton = nullptr;
+    QPushButton *m_openContainingFolderButton = nullptr;
     QListWidget *m_duplicatesList = nullptr;
 
     QWidget *m_timelineTab = nullptr;
