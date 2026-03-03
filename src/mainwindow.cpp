@@ -10,6 +10,7 @@
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QPixmap>
+#include <QShortcut>
 #include <QSplitter>
 #include <QStandardPaths>
 #include <QStatusBar>
@@ -210,6 +211,24 @@ void MainWindow::setupToolbar()
 
 void MainWindow::setupConnections()
 {
+    auto selectAdjacent = [this](int delta) {
+        if (m_photoList->count() == 0) {
+            return;
+        }
+        const int current = m_photoList->currentRow();
+        const int next = qBound(0, current + delta, m_photoList->count() - 1);
+        m_photoList->setCurrentRow(next);
+    };
+
+    auto *nextShortcut = new QShortcut(QKeySequence(Qt::Key_Right), this);
+    auto *prevShortcut = new QShortcut(QKeySequence(Qt::Key_Left), this);
+    auto *nextAltShortcut = new QShortcut(QKeySequence("Ctrl+J"), this);
+    auto *prevAltShortcut = new QShortcut(QKeySequence("Ctrl+K"), this);
+    connect(nextShortcut, &QShortcut::activated, this, [selectAdjacent]() { selectAdjacent(1); });
+    connect(prevShortcut, &QShortcut::activated, this, [selectAdjacent]() { selectAdjacent(-1); });
+    connect(nextAltShortcut, &QShortcut::activated, this, [selectAdjacent]() { selectAdjacent(1); });
+    connect(prevAltShortcut, &QShortcut::activated, this, [selectAdjacent]() { selectAdjacent(-1); });
+
     connect(m_nameFilter, &QLineEdit::textChanged, this, &MainWindow::refreshList);
     connect(m_tagFilter, &QLineEdit::textChanged, this, &MainWindow::refreshList);
     connect(m_sortCombo, &QComboBox::currentTextChanged, this, [this]() {
