@@ -424,8 +424,17 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     m_vignetteSlider->setRange(0, 100);
     m_vignetteSlider->setValue(0);
 
+    m_sharpenSlider = new QSlider(Qt::Horizontal, this);
+    m_sharpenSlider->setRange(0, 100);
+    m_sharpenSlider->setValue(0);
+
+    m_blurSlider = new QSlider(Qt::Horizontal, this);
+    m_blurSlider->setRange(0, 100);
+    m_blurSlider->setValue(0);
+
     m_grayscaleCheck = new QCheckBox("Grayscale", this);
     m_sepiaCheck = new QCheckBox("Sepia", this);
+    m_editorCropSquareButton = new QPushButton("Crop 1:1", this);
     m_editorRotateLeftButton = new QPushButton("Rotate Left", this);
     m_editorRotateRightButton = new QPushButton("Rotate Right", this);
     m_editorUndoButton = new QPushButton("Undo", this);
@@ -438,8 +447,11 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     m_editorSaveSnapshotButton = new QPushButton("Save Snapshot", this);
     m_editorSnapshotsList = new QListWidget(this);
     m_editorSnapshotsList->setMinimumHeight(120);
+    m_editorExportPresetCombo = new QComboBox(this);
+    m_editorExportPresetCombo->addItems({"Original Quality", "Web (80)", "High (95)", "PNG Lossless"});
 
     auto *editorActions = new QHBoxLayout();
+    editorActions->addWidget(m_editorCropSquareButton);
     editorActions->addWidget(m_editorRotateLeftButton);
     editorActions->addWidget(m_editorRotateRightButton);
     editorActions->addWidget(m_editorUndoButton);
@@ -448,6 +460,7 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     editorActions->addWidget(m_editorBeforeAfterButton);
     editorActions->addWidget(m_editorResetButton);
     editorActions->addStretch(1);
+    editorActions->addWidget(m_editorExportPresetCombo);
     editorActions->addWidget(m_editorSaveSnapshotButton);
     editorActions->addWidget(m_editorSaveCopyButton);
 
@@ -462,6 +475,10 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     editorLayout->addWidget(m_temperatureSlider);
     editorLayout->addWidget(new QLabel("Vignette", this));
     editorLayout->addWidget(m_vignetteSlider);
+    editorLayout->addWidget(new QLabel("Sharpen", this));
+    editorLayout->addWidget(m_sharpenSlider);
+    editorLayout->addWidget(new QLabel("Blur / NR", this));
+    editorLayout->addWidget(m_blurSlider);
     editorLayout->addWidget(m_grayscaleCheck);
     editorLayout->addWidget(m_sepiaCheck);
     editorLayout->addLayout(editorActions);
@@ -1166,6 +1183,12 @@ void MainWindow::setupConnections()
     connect(m_vignetteSlider, &QSlider::valueChanged, this, [this](int) {
         applyEditorAdjustments();
     });
+    connect(m_sharpenSlider, &QSlider::valueChanged, this, [this](int) {
+        applyEditorAdjustments();
+    });
+    connect(m_blurSlider, &QSlider::valueChanged, this, [this](int) {
+        applyEditorAdjustments();
+    });
     connect(m_grayscaleCheck, &QCheckBox::toggled, this, [this](bool) {
         applyEditorAdjustments();
     });
@@ -1179,8 +1202,25 @@ void MainWindow::setupConnections()
         m_saturationSlider->setValue(0);
         m_temperatureSlider->setValue(0);
         m_vignetteSlider->setValue(0);
+        m_sharpenSlider->setValue(0);
+        m_blurSlider->setValue(0);
         m_grayscaleCheck->setChecked(false);
         m_sepiaCheck->setChecked(false);
+        applyEditorAdjustments();
+    });
+
+    connect(m_editorCropSquareButton, &QPushButton::clicked, this, [this]() {
+        if (m_editorOriginalImage.isNull()) {
+            return;
+        }
+
+        m_editorUndoStack.push_back(m_editorOriginalImage);
+        m_editorRedoStack.clear();
+
+        const int side = qMin(m_editorOriginalImage.width(), m_editorOriginalImage.height());
+        const int x = (m_editorOriginalImage.width() - side) / 2;
+        const int y = (m_editorOriginalImage.height() - side) / 2;
+        m_editorOriginalImage = m_editorOriginalImage.copy(x, y, side, side);
         applyEditorAdjustments();
     });
 
@@ -1270,7 +1310,19 @@ void MainWindow::setupConnections()
             return;
         }
 
-        if (!m_editorPreviewImage.save(savePath)) {
+        bool saveOk = false;
+        const QString preset = m_editorExportPresetCombo->currentText();
+        if (preset == "PNG Lossless" || savePath.endsWith(".png", Qt::CaseInsensitive)) {
+            saveOk = m_editorPreviewImage.save(savePath, "PNG");
+        } else if (preset == "Web (80)") {
+            saveOk = m_editorPreviewImage.save(savePath, "JPG", 80);
+        } else if (preset == "High (95)") {
+            saveOk = m_editorPreviewImage.save(savePath, "JPG", 95);
+        } else {
+            saveOk = m_editorPreviewImage.save(savePath);
+        }
+
+        if (!saveOk) {
             QMessageBox::warning(this, "Save failed", "Could not save edited image.");
             return;
         }
@@ -1858,6 +1910,8 @@ void MainWindow::loadEditorPhoto(const QString &path)
     m_saturationSlider->blockSignals(true);
     m_temperatureSlider->blockSignals(true);
     m_vignetteSlider->blockSignals(true);
+    m_sharpenSlider->blockSignals(true);
+    m_blurSlider->blockSignals(true);
     m_grayscaleCheck->blockSignals(true);
     m_sepiaCheck->blockSignals(true);
     m_brightnessSlider->setValue(0);
@@ -1865,6 +1919,8 @@ void MainWindow::loadEditorPhoto(const QString &path)
     m_saturationSlider->setValue(0);
     m_temperatureSlider->setValue(0);
     m_vignetteSlider->setValue(0);
+    m_sharpenSlider->setValue(0);
+    m_blurSlider->setValue(0);
     m_grayscaleCheck->setChecked(false);
     m_sepiaCheck->setChecked(false);
     m_editorBeforeAfterButton->setChecked(false);
@@ -1874,6 +1930,8 @@ void MainWindow::loadEditorPhoto(const QString &path)
     m_saturationSlider->blockSignals(false);
     m_temperatureSlider->blockSignals(false);
     m_vignetteSlider->blockSignals(false);
+    m_sharpenSlider->blockSignals(false);
+    m_blurSlider->blockSignals(false);
     m_grayscaleCheck->blockSignals(false);
     m_sepiaCheck->blockSignals(false);
 
@@ -1898,6 +1956,8 @@ QImage MainWindow::makeEditedImage() const
     const int saturation = m_saturationSlider->value();
     const int temperature = m_temperatureSlider->value();
     const int vignette = m_vignetteSlider->value();
+    const int sharpen = m_sharpenSlider->value();
+    const int blur = m_blurSlider->value();
     const bool grayscale = m_grayscaleCheck->isChecked();
     const bool sepia = m_sepiaCheck->isChecked();
 
@@ -1964,6 +2024,55 @@ QImage MainWindow::makeEditedImage() const
             }
 
             line[x] = qRgb(r, g, b);
+        }
+    }
+
+    if (blur > 0 || sharpen > 0) {
+        QImage source = output;
+        const int radius = qMax(1, blur / 20);
+        for (int y = 1; y < output.height() - 1; ++y) {
+            QRgb *dst = reinterpret_cast<QRgb *>(output.scanLine(y));
+            for (int x = 1; x < output.width() - 1; ++x) {
+                QColor center = QColor::fromRgb(source.pixel(x, y));
+                int sumR = 0;
+                int sumG = 0;
+                int sumB = 0;
+                int count = 0;
+                for (int oy = -radius; oy <= radius; ++oy) {
+                    for (int ox = -radius; ox <= radius; ++ox) {
+                        const int sx = qBound(0, x + ox, source.width() - 1);
+                        const int sy = qBound(0, y + oy, source.height() - 1);
+                        QColor c = QColor::fromRgb(source.pixel(sx, sy));
+                        sumR += c.red();
+                        sumG += c.green();
+                        sumB += c.blue();
+                        ++count;
+                    }
+                }
+
+                const int avgR = sumR / count;
+                const int avgG = sumG / count;
+                const int avgB = sumB / count;
+
+                int r = avgR;
+                int g = avgG;
+                int b = avgB;
+
+                if (sharpen > 0) {
+                    const double amount = sharpen / 100.0;
+                    r = qBound(0, static_cast<int>(std::round(center.red() + (center.red() - avgR) * amount * 2.0)), 255);
+                    g = qBound(0, static_cast<int>(std::round(center.green() + (center.green() - avgG) * amount * 2.0)), 255);
+                    b = qBound(0, static_cast<int>(std::round(center.blue() + (center.blue() - avgB) * amount * 2.0)), 255);
+                }
+
+                if (blur > 0 && sharpen == 0) {
+                    r = qBound(0, static_cast<int>(std::round(center.red() * 0.4 + avgR * 0.6)), 255);
+                    g = qBound(0, static_cast<int>(std::round(center.green() * 0.4 + avgG * 0.6)), 255);
+                    b = qBound(0, static_cast<int>(std::round(center.blue() * 0.4 + avgB * 0.6)), 255);
+                }
+
+                dst[x] = qRgb(r, g, b);
+            }
         }
     }
 

@@ -129,8 +129,11 @@ private:
     QSlider *m_saturationSlider = nullptr;
     QSlider *m_temperatureSlider = nullptr;
     QSlider *m_vignetteSlider = nullptr;
+    QSlider *m_sharpenSlider = nullptr;
+    QSlider *m_blurSlider = nullptr;
     QCheckBox *m_grayscaleCheck = nullptr;
     QCheckBox *m_sepiaCheck = nullptr;
+    QPushButton *m_editorCropSquareButton = nullptr;
     QPushButton *m_editorRotateLeftButton = nullptr;
     QPushButton *m_editorRotateRightButton = nullptr;
     QPushButton *m_editorUndoButton = nullptr;
@@ -141,6 +144,7 @@ private:
     QPushButton *m_editorSaveCopyButton = nullptr;
     QPushButton *m_editorSaveSnapshotButton = nullptr;
     QListWidget *m_editorSnapshotsList = nullptr;
+    QComboBox *m_editorExportPresetCombo = nullptr;
     QImage m_editorOriginalImage;
     QImage m_editorPreviewImage;
     QVector<QImage> m_editorUndoStack;
