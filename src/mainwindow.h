@@ -121,6 +121,7 @@ private:
     QCheckBox *m_sepiaCheck = nullptr;
     QPushButton *m_editorRotateLeftButton = nullptr;
     QPushButton *m_editorRotateRightButton = nullptr;
+    QPushButton *m_editorBeforeAfterButton = nullptr;
     QPushButton *m_editorResetButton = nullptr;
     QPushButton *m_editorSaveCopyButton = nullptr;
     QImage m_editorOriginalImage;
@@ -130,5 +131,6 @@ private:
     QStringList m_recentFolders;
     bool m_hasUnsavedChanges = false;
     bool m_isLoadingSelection = false;
+    bool m_editorShowOriginal = false;
     QTimer *m_slideshowTimer = nullptr;
 };

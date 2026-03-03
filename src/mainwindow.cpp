@@ -394,12 +394,15 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     m_sepiaCheck = new QCheckBox("Sepia", this);
     m_editorRotateLeftButton = new QPushButton("Rotate Left", this);
     m_editorRotateRightButton = new QPushButton("Rotate Right", this);
+    m_editorBeforeAfterButton = new QPushButton("Before/After", this);
+    m_editorBeforeAfterButton->setCheckable(true);
     m_editorResetButton = new QPushButton("Reset", this);
     m_editorSaveCopyButton = new QPushButton("Save edited copy", this);
 
     auto *editorActions = new QHBoxLayout();
     editorActions->addWidget(m_editorRotateLeftButton);
     editorActions->addWidget(m_editorRotateRightButton);
+    editorActions->addWidget(m_editorBeforeAfterButton);
     editorActions->addWidget(m_editorResetButton);
     editorActions->addStretch(1);
     editorActions->addWidget(m_editorSaveCopyButton);
@@ -1009,6 +1012,11 @@ void MainWindow::setupConnections()
         applyEditorAdjustments();
     });
 
+    connect(m_editorBeforeAfterButton, &QPushButton::toggled, this, [this](bool checked) {
+        m_editorShowOriginal = checked;
+        updateEditorPreview();
+    });
+
     connect(m_editorRotateLeftButton, &QPushButton::clicked, this, [this]() {
         if (m_editorOriginalImage.isNull()) {
             return;
@@ -1432,6 +1440,8 @@ void MainWindow::clearDetails()
 
     m_editorOriginalImage = QImage();
     m_editorPreviewImage = QImage();
+    m_editorBeforeAfterButton->setChecked(false);
+    m_editorShowOriginal = false;
     m_editorPreviewLabel->setText("Editor preview (select a photo)");
     m_editorPreviewLabel->setPixmap(QPixmap());
 }
@@ -1474,6 +1484,8 @@ void MainWindow::loadEditorPhoto(const QString &path)
     m_vignetteSlider->setValue(0);
     m_grayscaleCheck->setChecked(false);
     m_sepiaCheck->setChecked(false);
+    m_editorBeforeAfterButton->setChecked(false);
+    m_editorShowOriginal = false;
     m_brightnessSlider->blockSignals(false);
     m_contrastSlider->blockSignals(false);
     m_saturationSlider->blockSignals(false);
@@ -1583,7 +1595,11 @@ void MainWindow::updateEditorPreview()
         return;
     }
 
-    m_editorPreviewLabel->setPixmap(QPixmap::fromImage(m_editorPreviewImage).scaled(
+    const QImage displayImage = (m_editorShowOriginal && !m_editorOriginalImage.isNull())
+        ? m_editorOriginalImage
+        : m_editorPreviewImage;
+
+    m_editorPreviewLabel->setPixmap(QPixmap::fromImage(displayImage).scaled(
         m_editorPreviewLabel->size(),
         Qt::KeepAspectRatio,
         Qt::SmoothTransformation));
