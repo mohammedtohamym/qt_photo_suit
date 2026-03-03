@@ -1,0 +1,16 @@
+build/
+deps/
+aqtinstall.log
+*.user
+*.obj
+*.pdb
+*.ilk
+*.tlog
+*.VC.db
+*.suo
+*.exe
+*.dll
+*.qm
+*.exp
+*.lib
+*.cache
