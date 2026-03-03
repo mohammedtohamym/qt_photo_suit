@@ -20,6 +20,7 @@
 #include <QMessageBox>
 #include <QPixmap>
 #include <QRandomGenerator>
+#include <QScrollArea>
 #include <QSettings>
 #include <QShortcut>
 #include <QSplitter>
@@ -408,7 +409,16 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
 
     m_editorTab = new QWidget(this);
     m_editorTab->setObjectName("EditorCard");
-    auto *editorLayout = new QVBoxLayout(m_editorTab);
+    auto *editorTabLayout = new QVBoxLayout(m_editorTab);
+    editorTabLayout->setContentsMargins(0, 0, 0, 0);
+    editorTabLayout->setSpacing(0);
+
+    auto *editorScroll = new QScrollArea(this);
+    editorScroll->setWidgetResizable(true);
+    editorScroll->setFrameShape(QFrame::NoFrame);
+
+    auto *editorContent = new QWidget(this);
+    auto *editorLayout = new QVBoxLayout(editorContent);
     editorLayout->setContentsMargins(12, 12, 12, 12);
     editorLayout->setSpacing(10);
 
@@ -512,6 +522,9 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     editorLayout->addLayout(editorRecipeRow);
     editorLayout->addWidget(new QLabel("Snapshots", this));
     editorLayout->addWidget(m_editorSnapshotsList);
+
+    editorScroll->setWidget(editorContent);
+    editorTabLayout->addWidget(editorScroll);
 
     m_suiteTabs->addTab(m_organizeTab, "Organize");
     m_suiteTabs->addTab(m_albumsTab, "Albums");
