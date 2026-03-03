@@ -19,6 +19,7 @@
 #include <QStandardPaths>
 #include <QStatusBar>
 #include <QStyle>
+#include <QTimer>
 #include <QUrl>
 #include <QVBoxLayout>
 
@@ -147,6 +148,9 @@ void MainWindow::setupUi()
     m_bulkRatingButton = new QPushButton("Apply rating to selected", this);
     m_openPhotoButton = new QPushButton("Open selected photo", this);
     m_copyPathButton = new QPushButton("Copy selected path", this);
+    m_slideshowButton = new QPushButton("Start slideshow", this);
+    m_slideshowTimer = new QTimer(this);
+    m_slideshowTimer->setInterval(2000);
     auto *openInExplorerButton = new QPushButton("Open photo location", this);
 
     detailsLayout->addWidget(m_previewLabel, 1);
@@ -164,6 +168,7 @@ void MainWindow::setupUi()
     detailsLayout->addWidget(m_bulkRatingButton);
     detailsLayout->addWidget(m_openPhotoButton);
     detailsLayout->addWidget(m_copyPathButton);
+    detailsLayout->addWidget(m_slideshowButton);
     detailsLayout->addWidget(m_saveButton);
     detailsLayout->addWidget(openInExplorerButton);
     detailsLayout->addStretch();
@@ -446,6 +451,28 @@ void MainWindow::setupConnections()
         }
         QApplication::clipboard()->setText(path);
         statusBar()->showMessage("Path copied to clipboard.", 2000);
+    });
+
+    connect(m_slideshowButton, &QPushButton::clicked, this, [this]() {
+        if (m_slideshowTimer->isActive()) {
+            m_slideshowTimer->stop();
+            m_slideshowButton->setText("Start slideshow");
+            return;
+        }
+        if (m_photoList->count() == 0) {
+            return;
+        }
+        m_slideshowTimer->start();
+        m_slideshowButton->setText("Stop slideshow");
+    });
+
+    connect(m_slideshowTimer, &QTimer::timeout, this, [this]() {
+        if (m_photoList->count() == 0) {
+            return;
+        }
+        const int current = m_photoList->currentRow();
+        const int next = (current + 1) % m_photoList->count();
+        m_photoList->setCurrentRow(next);
     });
 }
 

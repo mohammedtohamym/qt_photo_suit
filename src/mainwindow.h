@@ -13,6 +13,7 @@
 #include <QSpinBox>
 
 class QMenu;
+class QTimer;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -61,6 +62,7 @@ private:
     QPushButton *m_saveButton = nullptr;
     QPushButton *m_openPhotoButton = nullptr;
     QPushButton *m_copyPathButton = nullptr;
+    QPushButton *m_slideshowButton = nullptr;
     QPushButton *m_bulkAddTagsButton = nullptr;
     QPushButton *m_bulkFavoriteButton = nullptr;
     QPushButton *m_bulkRatingButton = nullptr;
@@ -69,4 +71,5 @@ private:
     QStringList m_recentFolders;
     bool m_hasUnsavedChanges = false;
     bool m_isLoadingSelection = false;
+    QTimer *m_slideshowTimer = nullptr;
 };
