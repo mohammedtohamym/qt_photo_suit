@@ -352,9 +352,14 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     m_filesTree->setModel(m_fileModel);
     m_filesTree->setSortingEnabled(true);
     m_filesTree->sortByColumn(0, Qt::AscendingOrder);
+    m_filesTree->setSelectionMode(QAbstractItemView::ExtendedSelection);
     m_renameFileButton = new QPushButton("Rename selected file", this);
+    m_bulkRenamePatternEdit = new QLineEdit(this);
+    m_bulkRenamePatternEdit->setPlaceholderText("bulk pattern e.g. trip_{n}");
+    m_bulkRenameButton = new QPushButton("Bulk Rename", this);
     m_scanDuplicatesButton = new QPushButton("Scan duplicates", this);
     m_openContainingFolderButton = new QPushButton("Open containing folder", this);
+    m_deleteDuplicateEntryButton = new QPushButton("Delete selected duplicate entry", this);
     m_duplicatesList = new QListWidget(this);
     m_duplicatesList->setMinimumHeight(140);
     m_duplicatesList->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -362,10 +367,17 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     filesLayout->addWidget(new QLabel("File Explorer", this));
     filesLayout->addWidget(m_filesTree, 1);
     filesLayout->addWidget(m_renameFileButton);
+
+    auto *bulkRenameRow = new QHBoxLayout();
+    bulkRenameRow->addWidget(m_bulkRenamePatternEdit, 1);
+    bulkRenameRow->addWidget(m_bulkRenameButton);
+    filesLayout->addLayout(bulkRenameRow);
+
     filesLayout->addWidget(m_openContainingFolderButton);
     filesLayout->addWidget(m_scanDuplicatesButton);
     filesLayout->addWidget(new QLabel("Likely duplicates", this));
     filesLayout->addWidget(m_duplicatesList);
+    filesLayout->addWidget(m_deleteDuplicateEntryButton);
 
     m_timelineTab = new QWidget(this);
     m_timelineTab->setObjectName("FilesCard");
@@ -1014,6 +1026,44 @@ void MainWindow::setupConnections()
         }
     });
 
+    connect(m_bulkRenameButton, &QPushButton::clicked, this, [this]() {
+        const QString pattern = m_bulkRenamePatternEdit->text().trimmed();
+        if (pattern.isEmpty()) {
+            return;
+        }
+
+        const QModelIndexList selectedIndexes = m_filesTree->selectionModel()->selectedRows();
+        if (selectedIndexes.isEmpty()) {
+            return;
+        }
+
+        int renamed = 0;
+        int sequence = 1;
+        for (const auto &index : selectedIndexes) {
+            const QString path = m_fileModel->filePath(index);
+            QFileInfo info(path);
+            if (!info.isFile()) {
+                continue;
+            }
+
+            QString newBase = pattern;
+            newBase.replace("{n}", QString::number(sequence));
+            const QString newPath = info.dir().filePath(newBase + "." + info.suffix());
+            ++sequence;
+
+            if (QFile::exists(newPath)) {
+                continue;
+            }
+            if (QFile::rename(path, newPath)) {
+                ++renamed;
+            }
+        }
+
+        refreshFilesWorkspace();
+        refreshList();
+        statusBar()->showMessage(QString("Bulk rename complete: %1 files").arg(renamed), 2500);
+    });
+
     connect(m_timelineList, &QListWidget::itemDoubleClicked, this, [this](QListWidgetItem *item) {
         if (!item) {
             return;
@@ -1077,6 +1127,28 @@ void MainWindow::setupConnections()
         if (!path.isEmpty()) {
             QDesktopServices::openUrl(QUrl::fromLocalFile(path));
         }
+    });
+
+    connect(m_deleteDuplicateEntryButton, &QPushButton::clicked, this, [this]() {
+        auto *item = m_duplicatesList->currentItem();
+        if (!item) {
+            return;
+        }
+
+        const QString path = item->data(Qt::UserRole).toString();
+        if (path.isEmpty()) {
+            return;
+        }
+
+        if (!QFile::exists(path) || !QFile::remove(path)) {
+            QMessageBox::warning(this, "Delete failed", "Could not delete selected duplicate file.");
+            return;
+        }
+
+        delete item;
+        refreshFilesWorkspace();
+        refreshList();
+        statusBar()->showMessage("Duplicate entry deleted.", 2200);
     });
 
     connect(m_brightnessSlider, &QSlider::valueChanged, this, [this](int) {

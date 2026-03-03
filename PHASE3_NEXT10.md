@@ -4,7 +4,7 @@
 2. [x] Custom smart album rules (delete)
 3. [x] Timeline year filter
 4. [x] Timeline double-click selects in Library
-5. [ ] Files bulk rename pattern tool
+5. [x] Files bulk rename pattern tool
 6. [ ] Files quick duplicate cleanup (delete selected duplicate entries)
 7. [ ] Editor square crop action
 8. [ ] Editor sharpen control

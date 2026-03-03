@@ -111,8 +111,11 @@ private:
     QTreeView *m_filesTree = nullptr;
     QFileSystemModel *m_fileModel = nullptr;
     QPushButton *m_renameFileButton = nullptr;
+    QLineEdit *m_bulkRenamePatternEdit = nullptr;
+    QPushButton *m_bulkRenameButton = nullptr;
     QPushButton *m_scanDuplicatesButton = nullptr;
     QPushButton *m_openContainingFolderButton = nullptr;
+    QPushButton *m_deleteDuplicateEntryButton = nullptr;
     QListWidget *m_duplicatesList = nullptr;
 
     QWidget *m_timelineTab = nullptr;
