@@ -615,6 +615,29 @@ void MainWindow::setupToolbar()
 
 void MainWindow::setupConnections()
 {
+    m_editorApplyTimer = new QTimer(this);
+    m_editorApplyTimer->setSingleShot(true);
+    m_editorApplyTimer->setInterval(45);
+    connect(m_editorApplyTimer, &QTimer::timeout, this, &MainWindow::applyEditorAdjustments);
+
+    auto rebuildEditorPreviewSource = [this]() {
+        const int maxPreviewDimension = 1600;
+        if (m_editorOriginalImage.isNull()) {
+            m_editorPreviewSourceImage = QImage();
+            return;
+        }
+
+        if (m_editorOriginalImage.width() > maxPreviewDimension || m_editorOriginalImage.height() > maxPreviewDimension) {
+            m_editorPreviewSourceImage = m_editorOriginalImage.scaled(
+                maxPreviewDimension,
+                maxPreviewDimension,
+                Qt::KeepAspectRatio,
+                Qt::SmoothTransformation);
+        } else {
+            m_editorPreviewSourceImage = m_editorOriginalImage;
+        }
+    };
+
     auto loadSavedSearches = [this]() {
         const QString current = m_savedSearchCombo->currentData().toString();
         m_savedSearchCombo->blockSignals(true);
@@ -1214,31 +1237,31 @@ void MainWindow::setupConnections()
     });
 
     connect(m_brightnessSlider, &QSlider::valueChanged, this, [this](int) {
-        applyEditorAdjustments();
+        requestEditorAdjustments();
     });
     connect(m_contrastSlider, &QSlider::valueChanged, this, [this](int) {
-        applyEditorAdjustments();
+        requestEditorAdjustments();
     });
     connect(m_saturationSlider, &QSlider::valueChanged, this, [this](int) {
-        applyEditorAdjustments();
+        requestEditorAdjustments();
     });
     connect(m_temperatureSlider, &QSlider::valueChanged, this, [this](int) {
-        applyEditorAdjustments();
+        requestEditorAdjustments();
     });
     connect(m_vignetteSlider, &QSlider::valueChanged, this, [this](int) {
-        applyEditorAdjustments();
+        requestEditorAdjustments();
     });
     connect(m_sharpenSlider, &QSlider::valueChanged, this, [this](int) {
-        applyEditorAdjustments();
+        requestEditorAdjustments();
     });
     connect(m_blurSlider, &QSlider::valueChanged, this, [this](int) {
-        applyEditorAdjustments();
+        requestEditorAdjustments();
     });
     connect(m_grayscaleCheck, &QCheckBox::toggled, this, [this](bool) {
-        applyEditorAdjustments();
+        requestEditorAdjustments();
     });
     connect(m_sepiaCheck, &QCheckBox::toggled, this, [this](bool) {
-        applyEditorAdjustments();
+        requestEditorAdjustments();
     });
 
     connect(m_editorResetButton, &QPushButton::clicked, this, [this]() {
@@ -1254,7 +1277,7 @@ void MainWindow::setupConnections()
         applyEditorAdjustments();
     });
 
-    connect(m_editorCropSquareButton, &QPushButton::clicked, this, [this]() {
+    connect(m_editorCropSquareButton, &QPushButton::clicked, this, [this, rebuildEditorPreviewSource]() {
         if (m_editorOriginalImage.isNull()) {
             return;
         }
@@ -1266,6 +1289,7 @@ void MainWindow::setupConnections()
         const int x = (m_editorOriginalImage.width() - side) / 2;
         const int y = (m_editorOriginalImage.height() - side) / 2;
         m_editorOriginalImage = m_editorOriginalImage.copy(x, y, side, side);
+        rebuildEditorPreviewSource();
         applyEditorAdjustments();
     });
 
@@ -1274,41 +1298,45 @@ void MainWindow::setupConnections()
         updateEditorPreview();
     });
 
-    connect(m_editorRotateLeftButton, &QPushButton::clicked, this, [this]() {
+    connect(m_editorRotateLeftButton, &QPushButton::clicked, this, [this, rebuildEditorPreviewSource]() {
         if (m_editorOriginalImage.isNull()) {
             return;
         }
         m_editorUndoStack.push_back(m_editorOriginalImage);
         m_editorRedoStack.clear();
         m_editorOriginalImage = m_editorOriginalImage.transformed(QTransform().rotate(-90), Qt::SmoothTransformation);
+        rebuildEditorPreviewSource();
         applyEditorAdjustments();
     });
 
-    connect(m_editorRotateRightButton, &QPushButton::clicked, this, [this]() {
+    connect(m_editorRotateRightButton, &QPushButton::clicked, this, [this, rebuildEditorPreviewSource]() {
         if (m_editorOriginalImage.isNull()) {
             return;
         }
         m_editorUndoStack.push_back(m_editorOriginalImage);
         m_editorRedoStack.clear();
         m_editorOriginalImage = m_editorOriginalImage.transformed(QTransform().rotate(90), Qt::SmoothTransformation);
+        rebuildEditorPreviewSource();
         applyEditorAdjustments();
     });
 
-    connect(m_editorUndoButton, &QPushButton::clicked, this, [this]() {
+    connect(m_editorUndoButton, &QPushButton::clicked, this, [this, rebuildEditorPreviewSource]() {
         if (m_editorUndoStack.isEmpty()) {
             return;
         }
         m_editorRedoStack.push_back(m_editorOriginalImage);
         m_editorOriginalImage = m_editorUndoStack.takeLast();
+        rebuildEditorPreviewSource();
         applyEditorAdjustments();
     });
 
-    connect(m_editorRedoButton, &QPushButton::clicked, this, [this]() {
+    connect(m_editorRedoButton, &QPushButton::clicked, this, [this, rebuildEditorPreviewSource]() {
         if (m_editorRedoStack.isEmpty()) {
             return;
         }
         m_editorUndoStack.push_back(m_editorOriginalImage);
         m_editorOriginalImage = m_editorRedoStack.takeLast();
+        rebuildEditorPreviewSource();
         applyEditorAdjustments();
     });
 
@@ -1356,15 +1384,21 @@ void MainWindow::setupConnections()
         }
 
         bool saveOk = false;
+        const QImage fullResolutionEdited = makeEditedImageFromSource(m_editorOriginalImage);
+        if (fullResolutionEdited.isNull()) {
+            QMessageBox::warning(this, "Save failed", "Could not render edited image.");
+            return;
+        }
+
         const QString preset = m_editorExportPresetCombo->currentText();
         if (preset == "PNG Lossless" || savePath.endsWith(".png", Qt::CaseInsensitive)) {
-            saveOk = m_editorPreviewImage.save(savePath, "PNG");
+            saveOk = fullResolutionEdited.save(savePath, "PNG");
         } else if (preset == "Web (80)") {
-            saveOk = m_editorPreviewImage.save(savePath, "JPG", 80);
+            saveOk = fullResolutionEdited.save(savePath, "JPG", 80);
         } else if (preset == "High (95)") {
-            saveOk = m_editorPreviewImage.save(savePath, "JPG", 95);
+            saveOk = fullResolutionEdited.save(savePath, "JPG", 95);
         } else {
-            saveOk = m_editorPreviewImage.save(savePath);
+            saveOk = fullResolutionEdited.save(savePath);
         }
 
         if (!saveOk) {
@@ -1483,7 +1517,7 @@ void MainWindow::setupConnections()
         statusBar()->showMessage(QString("Recipe applied to %1 photo(s). ").arg(applied), 2200);
     });
 
-    connect(m_editorSnapshotsList, &QListWidget::itemDoubleClicked, this, [this](QListWidgetItem *item) {
+    connect(m_editorSnapshotsList, &QListWidget::itemDoubleClicked, this, [this, rebuildEditorPreviewSource](QListWidgetItem *item) {
         if (!item) {
             return;
         }
@@ -1495,6 +1529,7 @@ void MainWindow::setupConnections()
         m_editorUndoStack.push_back(m_editorOriginalImage);
         m_editorRedoStack.clear();
         m_editorOriginalImage = m_editorSnapshots.value(key).convertToFormat(QImage::Format_RGB32);
+        rebuildEditorPreviewSource();
         m_brightnessSlider->setValue(0);
         m_contrastSlider->setValue(0);
         m_saturationSlider->setValue(0);
@@ -2001,6 +2036,7 @@ void MainWindow::clearDetails()
     m_bulkActionsButton->setEnabled(false);
 
     m_editorOriginalImage = QImage();
+    m_editorPreviewSourceImage = QImage();
     m_editorPreviewImage = QImage();
     m_editorUndoStack.clear();
     m_editorRedoStack.clear();
@@ -2101,6 +2137,7 @@ void MainWindow::loadEditorPhoto(const QString &path)
     m_editorPhotoPath.clear();
     if (path.isEmpty()) {
         m_editorOriginalImage = QImage();
+        m_editorPreviewSourceImage = QImage();
         m_editorPreviewImage = QImage();
         updateEditorPreview();
         return;
@@ -2114,6 +2151,16 @@ void MainWindow::loadEditorPhoto(const QString &path)
     m_editorPhotoPath = QDir::cleanPath(path);
 
     m_editorOriginalImage = loaded.convertToFormat(QImage::Format_RGB32);
+    const int maxPreviewDimension = 1600;
+    if (m_editorOriginalImage.width() > maxPreviewDimension || m_editorOriginalImage.height() > maxPreviewDimension) {
+        m_editorPreviewSourceImage = m_editorOriginalImage.scaled(
+            maxPreviewDimension,
+            maxPreviewDimension,
+            Qt::KeepAspectRatio,
+            Qt::SmoothTransformation);
+    } else {
+        m_editorPreviewSourceImage = m_editorOriginalImage;
+    }
     m_editorUndoStack.clear();
     m_editorRedoStack.clear();
     m_editorSnapshots.clear();
@@ -2155,6 +2202,15 @@ void MainWindow::loadEditorPhoto(const QString &path)
     }
 
     applyEditorAdjustments();
+}
+
+void MainWindow::requestEditorAdjustments()
+{
+    if (!m_editorApplyTimer) {
+        applyEditorAdjustments();
+        return;
+    }
+    m_editorApplyTimer->start();
 }
 
 void MainWindow::applyRecipeToEditorControls(const QJsonObject &recipe)
@@ -2223,7 +2279,17 @@ QImage MainWindow::makeEditedImage() const
         return {};
     }
 
-    QImage output = m_editorOriginalImage;
+    const QImage source = m_editorPreviewSourceImage.isNull() ? m_editorOriginalImage : m_editorPreviewSourceImage;
+    return makeEditedImageFromSource(source);
+}
+
+QImage MainWindow::makeEditedImageFromSource(const QImage &source) const
+{
+    if (source.isNull()) {
+        return {};
+    }
+
+    QImage output = source.convertToFormat(QImage::Format_RGB32);
     const int brightness = m_brightnessSlider->value();
     const int contrast = m_contrastSlider->value();
     const int saturation = m_saturationSlider->value();

@@ -42,11 +42,13 @@ private:
     void refreshFilesWorkspace();
     void refreshTimelineWorkspace();
     void loadEditorPhoto(const QString &path);
+    void requestEditorAdjustments();
     void applyRecipeToEditorControls(const QJsonObject &recipe);
     QJsonObject currentEditorRecipe() const;
     void applyEditorAdjustments();
     void updateEditorPreview();
     QImage makeEditedImage() const;
+    QImage makeEditedImageFromSource(const QImage &source) const;
 
     void openFolder();
     void openFolderPath(const QString &folderPath);
@@ -155,6 +157,7 @@ private:
     QPushButton *m_editorApplyRecipePresetButton = nullptr;
     QPushButton *m_editorBatchApplyRecipeButton = nullptr;
     QImage m_editorOriginalImage;
+    QImage m_editorPreviewSourceImage;
     QImage m_editorPreviewImage;
     QVector<QImage> m_editorUndoStack;
     QVector<QImage> m_editorRedoStack;
@@ -167,4 +170,5 @@ private:
     bool m_isLoadingSelection = false;
     bool m_editorShowOriginal = false;
     QTimer *m_slideshowTimer = nullptr;
+    QTimer *m_editorApplyTimer = nullptr;
 };
