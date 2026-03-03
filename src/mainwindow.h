@@ -20,6 +20,7 @@ class QAction;
 class QFileSystemModel;
 class QTabWidget;
 class QTreeView;
+class QSplitter;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
