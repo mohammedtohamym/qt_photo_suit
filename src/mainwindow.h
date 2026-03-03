@@ -117,6 +117,7 @@ private:
 
     QWidget *m_timelineTab = nullptr;
     QListWidget *m_timelineList = nullptr;
+    QComboBox *m_timelineYearFilter = nullptr;
 
     QWidget *m_editorTab = nullptr;
     QLabel *m_editorPreviewLabel = nullptr;

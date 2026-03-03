@@ -372,9 +372,12 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     auto *timelineLayout = new QVBoxLayout(m_timelineTab);
     timelineLayout->setContentsMargins(12, 12, 12, 12);
     timelineLayout->setSpacing(10);
+    m_timelineYearFilter = new QComboBox(this);
+    m_timelineYearFilter->addItem("All years", QString());
     m_timelineList = new QListWidget(this);
     m_timelineList->setSelectionMode(QAbstractItemView::SingleSelection);
     timelineLayout->addWidget(new QLabel("Timeline", this));
+    timelineLayout->addWidget(m_timelineYearFilter);
     timelineLayout->addWidget(m_timelineList, 1);
 
     m_editorTab = new QWidget(this);
@@ -1016,9 +1019,22 @@ void MainWindow::setupConnections()
             return;
         }
         const QString path = item->data(Qt::UserRole).toString();
-        if (!path.isEmpty()) {
-            QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+        if (path.isEmpty()) {
+            return;
         }
+
+        for (int i = 0; i < m_photoList->count(); ++i) {
+            auto *listItem = m_photoList->item(i);
+            if (listItem->data(Qt::UserRole).toString() == path) {
+                m_photoList->setCurrentRow(i);
+                m_suiteTabs->setCurrentIndex(0);
+                break;
+            }
+        }
+    });
+
+    connect(m_timelineYearFilter, &QComboBox::currentTextChanged, this, [this]() {
+        refreshTimelineWorkspace();
     });
 
     connect(m_scanDuplicatesButton, &QPushButton::clicked, this, [this]() {
@@ -1377,9 +1393,40 @@ void MainWindow::refreshTimelineWorkspace()
 {
     m_timelineList->clear();
 
+    QStringList availableYears;
+    for (const auto &photo : m_library.allItems()) {
+        const QString year = QFileInfo(photo.absolutePath).lastModified().toString("yyyy");
+        if (!availableYears.contains(year)) {
+            availableYears.push_back(year);
+        }
+    }
+    std::sort(availableYears.begin(), availableYears.end(), std::greater<QString>());
+
+    const QString previousYear = m_timelineYearFilter->currentData().toString();
+    m_timelineYearFilter->blockSignals(true);
+    m_timelineYearFilter->clear();
+    m_timelineYearFilter->addItem("All years", QString());
+    for (const auto &year : availableYears) {
+        m_timelineYearFilter->addItem(year, year);
+    }
+    int restoreYearIndex = 0;
+    for (int i = 0; i < m_timelineYearFilter->count(); ++i) {
+        if (m_timelineYearFilter->itemData(i).toString() == previousYear) {
+            restoreYearIndex = i;
+            break;
+        }
+    }
+    m_timelineYearFilter->setCurrentIndex(restoreYearIndex);
+    m_timelineYearFilter->blockSignals(false);
+
+    const QString selectedYear = m_timelineYearFilter->currentData().toString();
+
     QMap<QString, QStringList> grouped;
     for (const auto &photo : m_library.allItems()) {
         const QFileInfo info(photo.absolutePath);
+        if (!selectedYear.isEmpty() && info.lastModified().toString("yyyy") != selectedYear) {
+            continue;
+        }
         const QString monthKey = info.lastModified().toString("yyyy MMMM");
         grouped[monthKey].push_back(photo.absolutePath);
     }
