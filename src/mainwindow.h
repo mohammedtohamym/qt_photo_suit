@@ -100,6 +100,12 @@ private:
     QPushButton *m_deleteAlbumButton = nullptr;
     QPushButton *m_addToAlbumButton = nullptr;
     QPushButton *m_removeFromAlbumButton = nullptr;
+    QLineEdit *m_smartRuleNameEdit = nullptr;
+    QLineEdit *m_smartRuleTagEdit = nullptr;
+    QSpinBox *m_smartRuleMinRatingSpin = nullptr;
+    QCheckBox *m_smartRuleFavoriteOnlyCheck = nullptr;
+    QPushButton *m_createSmartRuleButton = nullptr;
+    QPushButton *m_deleteSmartRuleButton = nullptr;
 
     QWidget *m_filesTab = nullptr;
     QTreeView *m_filesTree = nullptr;

@@ -1,6 +1,6 @@
 # Phase 3 - Next 10 Advanced Features
 
-1. [ ] Custom smart album rules (create)
+1. [x] Custom smart album rules (create)
 2. [ ] Custom smart album rules (delete)
 3. [ ] Timeline year filter
 4. [ ] Timeline double-click selects in Library

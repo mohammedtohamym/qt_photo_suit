@@ -301,6 +301,24 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     newAlbumRow->addWidget(m_createAlbumButton);
     newAlbumRow->addWidget(m_deleteAlbumButton);
 
+    auto *smartRuleRow = new QHBoxLayout();
+    m_smartRuleNameEdit = new QLineEdit(this);
+    m_smartRuleNameEdit->setPlaceholderText("Smart rule name");
+    m_smartRuleTagEdit = new QLineEdit(this);
+    m_smartRuleTagEdit->setPlaceholderText("Tag contains (optional)");
+    m_smartRuleMinRatingSpin = new QSpinBox(this);
+    m_smartRuleMinRatingSpin->setRange(0, 5);
+    m_smartRuleMinRatingSpin->setPrefix("Min ");
+    m_smartRuleFavoriteOnlyCheck = new QCheckBox("Fav only", this);
+    m_createSmartRuleButton = new QPushButton("Create Smart Rule", this);
+    m_deleteSmartRuleButton = new QPushButton("Delete Smart Rule", this);
+    smartRuleRow->addWidget(m_smartRuleNameEdit, 1);
+    smartRuleRow->addWidget(m_smartRuleTagEdit, 1);
+    smartRuleRow->addWidget(m_smartRuleMinRatingSpin);
+    smartRuleRow->addWidget(m_smartRuleFavoriteOnlyCheck);
+    smartRuleRow->addWidget(m_createSmartRuleButton);
+    smartRuleRow->addWidget(m_deleteSmartRuleButton);
+
     m_albumList = new QListWidget(this);
     m_albumPhotoList = new QListWidget(this);
     m_albumPhotoList->setSelectionMode(QAbstractItemView::ExtendedSelection);
@@ -312,6 +330,7 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     albumActionsRow->addWidget(m_removeFromAlbumButton);
 
     albumsLayout->addLayout(newAlbumRow);
+    albumsLayout->addLayout(smartRuleRow);
     albumsLayout->addWidget(new QLabel("Albums", this));
     albumsLayout->addWidget(m_albumList, 1);
     albumsLayout->addLayout(albumActionsRow);
@@ -829,6 +848,59 @@ void MainWindow::setupConnections()
         m_library.deleteAlbum(item->data(Qt::UserRole).toString());
         refreshAlbumsWorkspace();
         statusBar()->showMessage("Album deleted.", 2000);
+    });
+
+    connect(m_createSmartRuleButton, &QPushButton::clicked, this, [this]() {
+        const QString name = m_smartRuleNameEdit->text().trimmed();
+        if (name.isEmpty()) {
+            return;
+        }
+
+        const QString serialized = QString("%1||%2||%3||%4")
+            .arg(name)
+            .arg(m_smartRuleFavoriteOnlyCheck->isChecked() ? "1" : "0")
+            .arg(m_smartRuleMinRatingSpin->value())
+            .arg(m_smartRuleTagEdit->text().trimmed());
+
+        QStringList rules = QSettings("PhotoOrganizerQt", "PhotoOrganizerQt").value("customSmartAlbumRules").toStringList();
+        for (int i = rules.size() - 1; i >= 0; --i) {
+            if (rules[i].startsWith(name + "||")) {
+                rules.removeAt(i);
+            }
+        }
+        rules.prepend(serialized);
+        QSettings("PhotoOrganizerQt", "PhotoOrganizerQt").setValue("customSmartAlbumRules", rules);
+
+        m_smartRuleNameEdit->clear();
+        m_smartRuleTagEdit->clear();
+        m_smartRuleMinRatingSpin->setValue(0);
+        m_smartRuleFavoriteOnlyCheck->setChecked(false);
+        refreshAlbumsWorkspace();
+        statusBar()->showMessage("Custom smart rule created.", 2200);
+    });
+
+    connect(m_deleteSmartRuleButton, &QPushButton::clicked, this, [this]() {
+        const auto *item = m_albumList->currentItem();
+        if (!item) {
+            return;
+        }
+
+        const QString key = item->data(Qt::UserRole).toString();
+        if (!key.startsWith("customsmart:")) {
+            statusBar()->showMessage("Select a custom smart album to delete.", 2200);
+            return;
+        }
+
+        const QString name = key.mid(QString("customsmart:").size());
+        QStringList rules = QSettings("PhotoOrganizerQt", "PhotoOrganizerQt").value("customSmartAlbumRules").toStringList();
+        for (int i = rules.size() - 1; i >= 0; --i) {
+            if (rules[i].startsWith(name + "||")) {
+                rules.removeAt(i);
+            }
+        }
+        QSettings("PhotoOrganizerQt", "PhotoOrganizerQt").setValue("customSmartAlbumRules", rules);
+        refreshAlbumsWorkspace();
+        statusBar()->showMessage("Custom smart rule deleted.", 2200);
     });
 
     connect(m_addToAlbumButton, &QPushButton::clicked, this, [this]() {
@@ -1358,6 +1430,46 @@ void MainWindow::refreshAlbumsWorkspace()
     auto *untaggedSmart = new QListWidgetItem(QString("Smart: Untagged (%1)").arg(untaggedCount), m_albumList);
     untaggedSmart->setData(Qt::UserRole, "smart:untagged");
 
+    const QStringList customRules = QSettings("PhotoOrganizerQt", "PhotoOrganizerQt").value("customSmartAlbumRules").toStringList();
+    for (const auto &rule : customRules) {
+        const QStringList parts = rule.split("||");
+        if (parts.size() < 4 || parts[0].trimmed().isEmpty()) {
+            continue;
+        }
+
+        const QString name = parts[0];
+        const bool favOnly = parts[1] == "1";
+        const int minRating = parts[2].toInt();
+        const QString tagNeedle = parts[3].trimmed().toLower();
+
+        int count = 0;
+        for (const auto &photo : m_library.allItems()) {
+            if (favOnly && !photo.favorite) {
+                continue;
+            }
+            if (photo.rating < minRating) {
+                continue;
+            }
+            if (!tagNeedle.isEmpty()) {
+                bool match = false;
+                for (const auto &tag : photo.tags) {
+                    if (tag.toLower().contains(tagNeedle)) {
+                        match = true;
+                        break;
+                    }
+                }
+                if (!match) {
+                    continue;
+                }
+            }
+            ++count;
+        }
+
+        auto *customItem = new QListWidgetItem(QString("Smart: %1 (%2)").arg(name).arg(count), m_albumList);
+        customItem->setData(Qt::UserRole, "customsmart:" + name);
+        customItem->setForeground(QColor("#bfd0ff"));
+    }
+
     const auto albums = m_library.albumNames();
     for (const auto &album : albums) {
         const int count = m_library.photosForAlbum(album).size();
@@ -1405,6 +1517,44 @@ void MainWindow::refreshAlbumsWorkspace()
                 displayPaths.push_back(photo.absolutePath);
             }
         }
+    } else if (selected.startsWith("customsmart:")) {
+        const QString name = selected.mid(QString("customsmart:").size());
+        const QStringList customRules = QSettings("PhotoOrganizerQt", "PhotoOrganizerQt").value("customSmartAlbumRules").toStringList();
+        QStringList found;
+        for (const auto &rule : customRules) {
+            const QStringList parts = rule.split("||");
+            if (parts.size() < 4 || parts[0] != name) {
+                continue;
+            }
+
+            const bool favOnly = parts[1] == "1";
+            const int minRating = parts[2].toInt();
+            const QString tagNeedle = parts[3].trimmed().toLower();
+
+            for (const auto &photo : m_library.allItems()) {
+                if (favOnly && !photo.favorite) {
+                    continue;
+                }
+                if (photo.rating < minRating) {
+                    continue;
+                }
+                if (!tagNeedle.isEmpty()) {
+                    bool match = false;
+                    for (const auto &tag : photo.tags) {
+                        if (tag.toLower().contains(tagNeedle)) {
+                            match = true;
+                            break;
+                        }
+                    }
+                    if (!match) {
+                        continue;
+                    }
+                }
+                found.push_back(photo.absolutePath);
+            }
+            break;
+        }
+        displayPaths = found;
     } else {
         displayPaths = m_library.photosForAlbum(selected);
     }
