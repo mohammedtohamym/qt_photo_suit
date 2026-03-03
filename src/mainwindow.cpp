@@ -68,6 +68,8 @@ void MainWindow::setupUi()
     m_favoritesOnly = new QCheckBox("Favorites only", this);
     m_sortCombo = new QComboBox(this);
     m_sortCombo->addItems({"Name (A-Z)", "Name (Z-A)", "Rating (High-Low)", "Path"});
+    m_viewModeCombo = new QComboBox(this);
+    m_viewModeCombo->addItems({"Grid", "List"});
     m_thumbSizeSlider = new QSlider(Qt::Horizontal, this);
     m_thumbSizeSlider->setRange(80, 220);
     m_thumbSizeSlider->setValue(140);
@@ -78,6 +80,8 @@ void MainWindow::setupUi()
     filtersLayout->addWidget(new QLabel("Tag:", this));
     filtersLayout->addWidget(m_tagFilter, 2);
     filtersLayout->addWidget(m_favoritesOnly);
+    filtersLayout->addWidget(new QLabel("View:", this));
+    filtersLayout->addWidget(m_viewModeCombo);
     filtersLayout->addWidget(new QLabel("Sort:", this));
     filtersLayout->addWidget(m_sortCombo);
     filtersLayout->addWidget(new QLabel("Thumb:", this));
@@ -194,6 +198,9 @@ void MainWindow::setupConnections()
     connect(m_sortCombo, &QComboBox::currentTextChanged, this, [this]() {
         refreshList();
     });
+    connect(m_viewModeCombo, &QComboBox::currentTextChanged, this, [this]() {
+        refreshList();
+    });
     connect(m_thumbSizeSlider, &QSlider::valueChanged, this, [this](int value) {
         m_photoList->setIconSize(QSize(value, value));
         refreshList();
@@ -265,6 +272,12 @@ void MainWindow::openFolder()
 void MainWindow::refreshList()
 {
     const QString previousPath = currentPhotoPath();
+
+    const bool listMode = m_viewModeCombo->currentText() == "List";
+    m_photoList->setViewMode(listMode ? QListView::ListMode : QListView::IconMode);
+    m_photoList->setWordWrap(!listMode);
+    m_photoList->setSpacing(listMode ? 4 : 10);
+    m_photoList->setUniformItemSizes(listMode);
 
     m_photoList->clear();
 
