@@ -4,6 +4,7 @@
 
 #include <QCheckBox>
 #include <QComboBox>
+#include <QImage>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
@@ -16,6 +17,9 @@ class QMenu;
 class QTimer;
 class QToolButton;
 class QAction;
+class QFileSystemModel;
+class QTabWidget;
+class QTreeView;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -29,6 +33,13 @@ private:
     void setupToolbar();
     void setupConnections();
     void updateRecentFoldersMenu();
+    void setupSuiteTabs(QSplitter *splitter);
+    void refreshAlbumsWorkspace();
+    void refreshFilesWorkspace();
+    void loadEditorPhoto(const QString &path);
+    void applyEditorAdjustments();
+    void updateEditorPreview();
+    QImage makeEditedImage() const;
 
     void openFolder();
     void openFolderPath(const QString &folderPath);
@@ -54,7 +65,9 @@ private:
     QSpinBox *m_minRatingFilter = nullptr;
 
     QListWidget *m_photoList = nullptr;
+    QTabWidget *m_suiteTabs = nullptr;
 
+    QWidget *m_organizeTab = nullptr;
     QLabel *m_previewLabel = nullptr;
     QLabel *m_pathLabel = nullptr;
     QLineEdit *m_tagsEdit = nullptr;
@@ -71,6 +84,29 @@ private:
     QAction *m_bulkAddTagsAction = nullptr;
     QAction *m_bulkFavoriteAction = nullptr;
     QAction *m_bulkRatingAction = nullptr;
+
+    QWidget *m_albumsTab = nullptr;
+    QListWidget *m_albumList = nullptr;
+    QListWidget *m_albumPhotoList = nullptr;
+    QLineEdit *m_newAlbumEdit = nullptr;
+    QPushButton *m_createAlbumButton = nullptr;
+    QPushButton *m_deleteAlbumButton = nullptr;
+    QPushButton *m_addToAlbumButton = nullptr;
+    QPushButton *m_removeFromAlbumButton = nullptr;
+
+    QWidget *m_filesTab = nullptr;
+    QTreeView *m_filesTree = nullptr;
+    QFileSystemModel *m_fileModel = nullptr;
+
+    QWidget *m_editorTab = nullptr;
+    QLabel *m_editorPreviewLabel = nullptr;
+    QSlider *m_brightnessSlider = nullptr;
+    QSlider *m_contrastSlider = nullptr;
+    QCheckBox *m_grayscaleCheck = nullptr;
+    QPushButton *m_editorResetButton = nullptr;
+    QPushButton *m_editorSaveCopyButton = nullptr;
+    QImage m_editorOriginalImage;
+    QImage m_editorPreviewImage;
 
     QMenu *m_recentFoldersMenu = nullptr;
     QStringList m_recentFolders;

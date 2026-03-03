@@ -3,11 +3,13 @@
 #include <QAction>
 #include <QApplication>
 #include <QClipboard>
+#include <QColor>
 #include <QDesktopServices>
 #include <QDir>
+#include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
-#include <QFile>
+#include <QFileSystemModel>
 #include <QHBoxLayout>
 #include <QListWidgetItem>
 #include <QMenu>
@@ -15,21 +17,23 @@
 #include <QMessageBox>
 #include <QPixmap>
 #include <QRandomGenerator>
+#include <QSettings>
 #include <QShortcut>
 #include <QSplitter>
-#include <QSettings>
 #include <QStandardPaths>
 #include <QStatusBar>
 #include <QStyle>
-#include <QTimer>
+#include <QTabWidget>
 #include <QTextStream>
+#include <QTimer>
 #include <QToolBar>
 #include <QToolButton>
+#include <QTreeView>
 #include <QUrl>
 #include <QVBoxLayout>
 
 #include <algorithm>
-#include <QSet>
+#include <cmath>
 
 MainWindow::MainWindow()
 {
@@ -37,7 +41,7 @@ MainWindow::MainWindow()
     setupMenu();
     setupToolbar();
     setupConnections();
-    statusBar()->showMessage("Open a folder to start organizing photos.");
+    statusBar()->showMessage("Open a folder to start building your photo universe.");
 
     const QString lastFolder = QSettings("PhotoOrganizerQt", "PhotoOrganizerQt").value("lastFolder").toString();
     if (!lastFolder.isEmpty() && QFileInfo(lastFolder).isDir()) {
@@ -47,21 +51,33 @@ MainWindow::MainWindow()
 
 void MainWindow::setupUi()
 {
-    setWindowTitle("Photo Organizer (Qt)[*]");
-    resize(1200, 760);
+    setWindowTitle("PhotoSuite (Qt)[*]");
+    resize(1440, 860);
+
     setStyleSheet(
         "QMainWindow {"
-        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #0b1020, stop:1 #111827);"
+        "  background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #0a1020, stop:1 #111827);"
         "}"
-                "QWidget { color: #e6edf6; font-size: 13px; background: transparent; }"
-                "QWidget#FilterCard, QWidget#DetailsCard {"
-                "  background: rgba(15, 23, 42, 0.92);"
-                "  border: 1px solid #23324a;"
-                "  border-radius: 14px;"
-                "}"
+        "QWidget { color: #e6edf6; font-size: 13px; background: transparent; }"
+        "QWidget#FilterCard, QWidget#DetailsCard, QWidget#AlbumsCard, QWidget#FilesCard, QWidget#EditorCard {"
+        "  background: rgba(15, 23, 42, 0.92);"
+        "  border: 1px solid #23324a;"
+        "  border-radius: 14px;"
+        "}"
         "QLabel { color: #c9d6ea; }"
-        "QLineEdit, QSpinBox, QComboBox, QListWidget {"
-        "  background: rgba(17, 24, 39, 0.92);"
+        "QTabWidget::pane { border: 1px solid #23324a; border-radius: 12px; background: rgba(15, 23, 42, 0.85); }"
+        "QTabBar::tab {"
+        "  background: rgba(17, 24, 39, 0.8);"
+        "  border: 1px solid #23324a;"
+        "  border-top-left-radius: 10px;"
+        "  border-top-right-radius: 10px;"
+        "  padding: 8px 12px;"
+        "  margin-right: 4px;"
+        "  color: #9fb0ca;"
+        "}"
+        "QTabBar::tab:selected { background: #1d4ed8; color: #ffffff; border-color: #3b82f6; }"
+        "QLineEdit, QSpinBox, QComboBox, QListWidget, QTreeView {"
+        "  background: rgba(17, 24, 39, 0.94);"
         "  border: 1px solid #2f3f5c;"
         "  border-radius: 10px;"
         "  padding: 7px;"
@@ -69,22 +85,14 @@ void MainWindow::setupUi()
         "}"
         "QLineEdit:focus, QSpinBox:focus, QComboBox:focus { border: 1px solid #60a5fa; }"
         "QPushButton {"
-        "  background: #1d4ed8;"
-        "  border: none;"
-        "  border-radius: 10px;"
-        "  padding: 8px 12px;"
-        "  color: #ffffff;"
-        "  font-weight: 600;"
+        "  background: #1d4ed8; border: none; border-radius: 10px;"
+        "  padding: 8px 12px; color: #ffffff; font-weight: 600;"
         "}"
         "QPushButton:hover { background: #2563eb; }"
         "QPushButton:disabled { background: #334155; color: #94a3b8; }"
-        "QPushButton:focus { border: 1px solid #60a5fa; }"
         "QToolButton {"
-        "  background: rgba(17, 24, 39, 0.8);"
-        "  border: 1px solid #2f3f5c;"
-        "  border-radius: 10px;"
-        "  padding: 6px 10px;"
-        "  color: #e2e8f0;"
+        "  background: rgba(17, 24, 39, 0.85); border: 1px solid #2f3f5c;"
+        "  border-radius: 10px; padding: 6px 10px; color: #e2e8f0;"
         "}"
         "QToolButton:hover { background: rgba(30, 41, 59, 0.92); }"
         "QToolButton::menu-indicator { image: none; width: 0px; }"
@@ -92,13 +100,13 @@ void MainWindow::setupUi()
         "QCheckBox::indicator:unchecked { border: 1px solid #3b4c6a; background: #111827; border-radius: 4px; }"
         "QCheckBox::indicator:checked { border: 1px solid #60a5fa; background: #1d4ed8; border-radius: 4px; }"
         "QListWidget::item { background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 4px; }"
-        "QListWidget::item:hover { background: rgba(59, 130, 246, 0.16); border-color: rgba(96, 165, 250, 0.3); }"
-        "QListWidget::item:selected { background: rgba(37, 99, 235, 0.28); border-color: #3b82f6; color: #f8fbff; }"
+        "QListWidget::item:hover, QTreeView::item:hover { background: rgba(59, 130, 246, 0.16); }"
+        "QListWidget::item:selected, QTreeView::item:selected {"
+        "  background: rgba(37, 99, 235, 0.28); border-color: #3b82f6; color: #f8fbff;"
+        "}"
         "QToolBar { background: rgba(15, 23, 42, 0.9); border: 1px solid #23324a; border-radius: 10px; spacing: 4px; }"
         "QToolBar::separator { width: 1px; background: #23324a; margin: 4px; }"
         "QSplitter::handle { background: #23324a; margin: 0 3px; border-radius: 2px; }"
-        "QSplitter::handle:hover { background: #334a6c; }"
-        "QFrame { border-color: #2f3f5c; }"
         "QMenuBar, QMenu { background: #0f172a; color: #f8fafc; }"
         "QMenu::item:selected { background: #1e3a8a; }"
         "QStatusBar { background: #0b1220; color: #94a3b8; }"
@@ -117,6 +125,7 @@ void MainWindow::setupUi()
 
     auto *searchRow = new QHBoxLayout();
     searchRow->setSpacing(8);
+
     m_nameFilter = new QLineEdit(this);
     m_nameFilter->setPlaceholderText("Search photos by name...");
 
@@ -130,17 +139,20 @@ void MainWindow::setupUi()
 
     auto *controlsRow = new QHBoxLayout();
     controlsRow->setSpacing(8);
+
     m_sortCombo = new QComboBox(this);
     m_sortCombo->addItems({"Name (A-Z)", "Name (Z-A)", "Rating (High-Low)", "Path"});
     m_viewModeCombo = new QComboBox(this);
     m_viewModeCombo->addItems({"Grid", "List"});
+
     m_minRatingFilter = new QSpinBox(this);
     m_minRatingFilter->setRange(0, 5);
     m_minRatingFilter->setPrefix("Min ");
+
     m_thumbSizeSlider = new QSlider(Qt::Horizontal, this);
-    m_thumbSizeSlider->setRange(80, 220);
-    m_thumbSizeSlider->setValue(140);
-    m_thumbSizeSlider->setMaximumWidth(140);
+    m_thumbSizeSlider->setRange(80, 240);
+    m_thumbSizeSlider->setValue(150);
+    m_thumbSizeSlider->setMaximumWidth(180);
 
     controlsRow->addWidget(new QLabel("View", this));
     controlsRow->addWidget(m_viewModeCombo);
@@ -159,16 +171,32 @@ void MainWindow::setupUi()
 
     m_photoList = new QListWidget(this);
     m_photoList->setViewMode(QListView::IconMode);
-    m_photoList->setIconSize(QSize(140, 140));
+    m_photoList->setIconSize(QSize(150, 150));
     m_photoList->setResizeMode(QListWidget::Adjust);
     m_photoList->setMovement(QListView::Static);
     m_photoList->setSelectionMode(QAbstractItemView::ExtendedSelection);
     m_photoList->setSpacing(10);
     m_photoList->setWordWrap(true);
 
-    auto *detailsPanel = new QWidget(this);
-    detailsPanel->setObjectName("DetailsCard");
-    auto *detailsLayout = new QVBoxLayout(detailsPanel);
+    splitter->addWidget(m_photoList);
+    setupSuiteTabs(splitter);
+    splitter->setStretchFactor(0, 3);
+    splitter->setStretchFactor(1, 2);
+
+    rootLayout->addWidget(filterCard);
+    rootLayout->addWidget(splitter, 1);
+    setCentralWidget(central);
+
+    clearDetails();
+}
+
+void MainWindow::setupSuiteTabs(QSplitter *splitter)
+{
+    m_suiteTabs = new QTabWidget(this);
+
+    m_organizeTab = new QWidget(this);
+    m_organizeTab->setObjectName("DetailsCard");
+    auto *detailsLayout = new QVBoxLayout(m_organizeTab);
     detailsLayout->setContentsMargins(12, 12, 12, 12);
     detailsLayout->setSpacing(10);
 
@@ -184,8 +212,10 @@ void MainWindow::setupUi()
 
     m_tagsEdit = new QLineEdit(this);
     m_tagsEdit->setPlaceholderText("comma,separated,tags");
+
     m_bulkTagsEdit = new QLineEdit(this);
     m_bulkTagsEdit->setPlaceholderText("bulk tags to add to selected photos");
+
     m_autoSaveCheck = new QCheckBox("Auto-save metadata", this);
     m_autoSaveCheck->setChecked(QSettings("PhotoOrganizerQt", "PhotoOrganizerQt").value("autoSave", false).toBool());
 
@@ -195,12 +225,12 @@ void MainWindow::setupUi()
     m_ratingSpin->setRange(0, 5);
     m_ratingSpin->setPrefix("Rating: ");
 
-    m_saveButton = new QPushButton("Save metadata", this);
-    m_saveButton->setText("Save Changes");
-    m_openPhotoButton = new QPushButton("Open selected photo", this);
+    m_saveButton = new QPushButton("Save Changes", this);
+    m_openPhotoButton = new QPushButton("Open photo", this);
     m_openLocationButton = new QPushButton("Open location", this);
-    m_copyPathButton = new QPushButton("Copy selected path", this);
-    m_slideshowButton = new QPushButton("Slideshow");
+    m_copyPathButton = new QPushButton("Copy path", this);
+    m_slideshowButton = new QPushButton("Slideshow", this);
+
     m_bulkActionsButton = new QToolButton(this);
     m_bulkActionsButton->setText("Bulk Actions");
     m_bulkActionsButton->setPopupMode(QToolButton::InstantPopup);
@@ -240,25 +270,100 @@ void MainWindow::setupUi()
     detailsLayout->addLayout(saveRow);
     detailsLayout->addStretch();
 
-    splitter->addWidget(m_photoList);
-    splitter->addWidget(detailsPanel);
-    splitter->setStretchFactor(0, 2);
-    splitter->setStretchFactor(1, 1);
+    m_albumsTab = new QWidget(this);
+    m_albumsTab->setObjectName("AlbumsCard");
+    auto *albumsLayout = new QVBoxLayout(m_albumsTab);
+    albumsLayout->setContentsMargins(12, 12, 12, 12);
+    albumsLayout->setSpacing(10);
 
-    rootLayout->addWidget(filterCard);
-    rootLayout->addWidget(splitter, 1);
-    setCentralWidget(central);
+    auto *newAlbumRow = new QHBoxLayout();
+    m_newAlbumEdit = new QLineEdit(this);
+    m_newAlbumEdit->setPlaceholderText("New album name");
+    m_createAlbumButton = new QPushButton("Create", this);
+    m_deleteAlbumButton = new QPushButton("Delete", this);
+    newAlbumRow->addWidget(m_newAlbumEdit, 1);
+    newAlbumRow->addWidget(m_createAlbumButton);
+    newAlbumRow->addWidget(m_deleteAlbumButton);
 
-    connect(m_openLocationButton, &QPushButton::clicked, this, [this]() {
-        const QString path = currentPhotoPath();
-        if (path.isEmpty()) {
-            return;
-        }
+    m_albumList = new QListWidget(this);
+    m_albumPhotoList = new QListWidget(this);
+    m_albumPhotoList->setSelectionMode(QAbstractItemView::ExtendedSelection);
 
-        QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(path).absolutePath()));
-    });
+    auto *albumActionsRow = new QHBoxLayout();
+    m_addToAlbumButton = new QPushButton("Add selected photos", this);
+    m_removeFromAlbumButton = new QPushButton("Remove selected photos", this);
+    albumActionsRow->addWidget(m_addToAlbumButton);
+    albumActionsRow->addWidget(m_removeFromAlbumButton);
 
-    clearDetails();
+    albumsLayout->addLayout(newAlbumRow);
+    albumsLayout->addWidget(new QLabel("Albums", this));
+    albumsLayout->addWidget(m_albumList, 1);
+    albumsLayout->addLayout(albumActionsRow);
+    albumsLayout->addWidget(new QLabel("Album Photos", this));
+    albumsLayout->addWidget(m_albumPhotoList, 1);
+
+    m_filesTab = new QWidget(this);
+    m_filesTab->setObjectName("FilesCard");
+    auto *filesLayout = new QVBoxLayout(m_filesTab);
+    filesLayout->setContentsMargins(12, 12, 12, 12);
+    filesLayout->setSpacing(10);
+
+    m_fileModel = new QFileSystemModel(this);
+    m_fileModel->setFilter(QDir::AllDirs | QDir::Files | QDir::NoDotAndDotDot);
+    m_fileModel->setNameFilters({"*.jpg", "*.jpeg", "*.png", "*.bmp", "*.gif", "*.webp", "*.tif", "*.tiff", "*.heic"});
+    m_fileModel->setNameFilterDisables(false);
+
+    m_filesTree = new QTreeView(this);
+    m_filesTree->setModel(m_fileModel);
+    m_filesTree->setSortingEnabled(true);
+    m_filesTree->sortByColumn(0, Qt::AscendingOrder);
+
+    filesLayout->addWidget(new QLabel("File Explorer", this));
+    filesLayout->addWidget(m_filesTree, 1);
+
+    m_editorTab = new QWidget(this);
+    m_editorTab->setObjectName("EditorCard");
+    auto *editorLayout = new QVBoxLayout(m_editorTab);
+    editorLayout->setContentsMargins(12, 12, 12, 12);
+    editorLayout->setSpacing(10);
+
+    m_editorPreviewLabel = new QLabel(this);
+    m_editorPreviewLabel->setMinimumSize(420, 300);
+    m_editorPreviewLabel->setAlignment(Qt::AlignCenter);
+    m_editorPreviewLabel->setText("Editor preview (select a photo)");
+    m_editorPreviewLabel->setStyleSheet("background: rgba(15,23,42,0.7); border: 1px solid #2f3f5c; border-radius: 12px;");
+
+    m_brightnessSlider = new QSlider(Qt::Horizontal, this);
+    m_brightnessSlider->setRange(-100, 100);
+    m_brightnessSlider->setValue(0);
+
+    m_contrastSlider = new QSlider(Qt::Horizontal, this);
+    m_contrastSlider->setRange(-100, 100);
+    m_contrastSlider->setValue(0);
+
+    m_grayscaleCheck = new QCheckBox("Grayscale", this);
+    m_editorResetButton = new QPushButton("Reset", this);
+    m_editorSaveCopyButton = new QPushButton("Save edited copy", this);
+
+    auto *editorActions = new QHBoxLayout();
+    editorActions->addWidget(m_editorResetButton);
+    editorActions->addStretch(1);
+    editorActions->addWidget(m_editorSaveCopyButton);
+
+    editorLayout->addWidget(m_editorPreviewLabel, 1);
+    editorLayout->addWidget(new QLabel("Brightness", this));
+    editorLayout->addWidget(m_brightnessSlider);
+    editorLayout->addWidget(new QLabel("Contrast", this));
+    editorLayout->addWidget(m_contrastSlider);
+    editorLayout->addWidget(m_grayscaleCheck);
+    editorLayout->addLayout(editorActions);
+
+    m_suiteTabs->addTab(m_organizeTab, "Organize");
+    m_suiteTabs->addTab(m_albumsTab, "Albums");
+    m_suiteTabs->addTab(m_filesTab, "Files");
+    m_suiteTabs->addTab(m_editorTab, "Editor");
+
+    splitter->addWidget(m_suiteTabs);
 }
 
 void MainWindow::setupMenu()
@@ -374,6 +479,7 @@ void MainWindow::setupConnections()
 
     connect(m_nameFilter, &QLineEdit::textChanged, this, &MainWindow::refreshList);
     connect(m_tagFilter, &QLineEdit::textChanged, this, &MainWindow::refreshList);
+
     connect(m_tagsEdit, &QLineEdit::textChanged, this, [this](const QString &) {
         if (!m_isLoadingSelection && !currentPhotoPath().isEmpty()) {
             setUnsavedChanges(true);
@@ -385,6 +491,7 @@ void MainWindow::setupConnections()
             }
         }
     });
+
     connect(m_favoriteCheck, &QCheckBox::toggled, this, [this](bool) {
         if (!m_isLoadingSelection && !currentPhotoPath().isEmpty()) {
             setUnsavedChanges(true);
@@ -396,6 +503,7 @@ void MainWindow::setupConnections()
             }
         }
     });
+
     connect(m_ratingSpin, &QSpinBox::valueChanged, this, [this](int) {
         if (!m_isLoadingSelection && !currentPhotoPath().isEmpty()) {
             setUnsavedChanges(true);
@@ -407,25 +515,19 @@ void MainWindow::setupConnections()
             }
         }
     });
+
     connect(m_autoSaveCheck, &QCheckBox::toggled, this, [](bool checked) {
         QSettings("PhotoOrganizerQt", "PhotoOrganizerQt").setValue("autoSave", checked);
     });
-    connect(m_sortCombo, &QComboBox::currentTextChanged, this, [this]() {
-        refreshList();
-    });
-    connect(m_viewModeCombo, &QComboBox::currentTextChanged, this, [this]() {
-        refreshList();
-    });
-    connect(m_minRatingFilter, &QSpinBox::valueChanged, this, [this](int) {
-        refreshList();
-    });
+
+    connect(m_sortCombo, &QComboBox::currentTextChanged, this, [this]() { refreshList(); });
+    connect(m_viewModeCombo, &QComboBox::currentTextChanged, this, [this]() { refreshList(); });
+    connect(m_minRatingFilter, &QSpinBox::valueChanged, this, [this](int) { refreshList(); });
     connect(m_thumbSizeSlider, &QSlider::valueChanged, this, [this](int value) {
         m_photoList->setIconSize(QSize(value, value));
         refreshList();
     });
-    connect(m_favoritesOnly, &QCheckBox::toggled, this, [this]() {
-        refreshList();
-    });
+    connect(m_favoritesOnly, &QCheckBox::toggled, this, [this]() { refreshList(); });
 
     connect(m_photoList, &QListWidget::currentRowChanged, this, [this]() {
         loadSelectionDetails();
@@ -439,9 +541,7 @@ void MainWindow::setupConnections()
         if (!item) {
             return;
         }
-
-        const QString path = item->data(Qt::UserRole).toString();
-        QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+        QDesktopServices::openUrl(QUrl::fromLocalFile(item->data(Qt::UserRole).toString()));
     });
 
     connect(m_saveButton, &QPushButton::clicked, this, [this, saveCurrentMetadata]() {
@@ -461,23 +561,7 @@ void MainWindow::setupConnections()
             const PhotoItem item = m_library.byAbsolutePath(path);
             QStringList merged = item.tags;
             merged.append(newTags);
-
-            QSet<QString> dedupe;
-            QStringList normalized;
-            for (const auto &tag : merged) {
-                const QString clean = tag.trimmed();
-                if (clean.isEmpty()) {
-                    continue;
-                }
-                const QString key = clean.toLower();
-                if (dedupe.contains(key)) {
-                    continue;
-                }
-                dedupe.insert(key);
-                normalized.push_back(clean);
-            }
-
-            m_library.updateTags(path, normalized);
+            m_library.updateTags(path, merged);
         }
 
         refreshList();
@@ -486,14 +570,13 @@ void MainWindow::setupConnections()
     });
 
     connect(m_bulkFavoriteAction, &QAction::triggered, this, [this]() {
-        const QStringList selected = selectedPhotoPaths();
+        const auto selected = selectedPhotoPaths();
         if (selected.isEmpty()) {
             return;
         }
 
-        const bool favoriteValue = m_favoriteCheck->isChecked();
         for (const auto &path : selected) {
-            m_library.updateFavorite(path, favoriteValue);
+            m_library.updateFavorite(path, m_favoriteCheck->isChecked());
         }
 
         refreshList();
@@ -502,14 +585,13 @@ void MainWindow::setupConnections()
     });
 
     connect(m_bulkRatingAction, &QAction::triggered, this, [this]() {
-        const QStringList selected = selectedPhotoPaths();
+        const auto selected = selectedPhotoPaths();
         if (selected.isEmpty()) {
             return;
         }
 
-        const int ratingValue = m_ratingSpin->value();
         for (const auto &path : selected) {
-            m_library.updateRating(path, ratingValue);
+            m_library.updateRating(path, m_ratingSpin->value());
         }
 
         refreshList();
@@ -519,19 +601,24 @@ void MainWindow::setupConnections()
 
     connect(m_openPhotoButton, &QPushButton::clicked, this, [this]() {
         const QString path = currentPhotoPath();
-        if (path.isEmpty()) {
-            return;
+        if (!path.isEmpty()) {
+            QDesktopServices::openUrl(QUrl::fromLocalFile(path));
         }
-        QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+    });
+
+    connect(m_openLocationButton, &QPushButton::clicked, this, [this]() {
+        const QString path = currentPhotoPath();
+        if (!path.isEmpty()) {
+            QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(path).absolutePath()));
+        }
     });
 
     connect(m_copyPathButton, &QPushButton::clicked, this, [this]() {
         const QString path = currentPhotoPath();
-        if (path.isEmpty()) {
-            return;
+        if (!path.isEmpty()) {
+            QApplication::clipboard()->setText(path);
+            statusBar()->showMessage("Path copied to clipboard.", 2000);
         }
-        QApplication::clipboard()->setText(path);
-        statusBar()->showMessage("Path copied to clipboard.", 2000);
     });
 
     connect(m_slideshowButton, &QPushButton::clicked, this, [this]() {
@@ -551,9 +638,118 @@ void MainWindow::setupConnections()
         if (m_photoList->count() == 0) {
             return;
         }
-        const int current = m_photoList->currentRow();
-        const int next = (current + 1) % m_photoList->count();
+        const int next = (m_photoList->currentRow() + 1) % m_photoList->count();
         m_photoList->setCurrentRow(next);
+    });
+
+    connect(m_createAlbumButton, &QPushButton::clicked, this, [this]() {
+        if (m_library.createAlbum(m_newAlbumEdit->text())) {
+            m_newAlbumEdit->clear();
+            refreshAlbumsWorkspace();
+            statusBar()->showMessage("Album created.", 2000);
+        }
+    });
+
+    connect(m_deleteAlbumButton, &QPushButton::clicked, this, [this]() {
+        const auto *item = m_albumList->currentItem();
+        if (!item) {
+            return;
+        }
+        m_library.deleteAlbum(item->text());
+        refreshAlbumsWorkspace();
+        statusBar()->showMessage("Album deleted.", 2000);
+    });
+
+    connect(m_addToAlbumButton, &QPushButton::clicked, this, [this]() {
+        const auto *albumItem = m_albumList->currentItem();
+        if (!albumItem) {
+            return;
+        }
+        const auto selected = selectedPhotoPaths();
+        if (selected.isEmpty()) {
+            return;
+        }
+        m_library.addPhotosToAlbum(albumItem->text(), selected);
+        refreshAlbumsWorkspace();
+        statusBar()->showMessage("Photos added to album.", 2000);
+    });
+
+    connect(m_removeFromAlbumButton, &QPushButton::clicked, this, [this]() {
+        const auto *albumItem = m_albumList->currentItem();
+        if (!albumItem) {
+            return;
+        }
+        QStringList removePaths;
+        for (auto *item : m_albumPhotoList->selectedItems()) {
+            removePaths.push_back(item->data(Qt::UserRole).toString());
+        }
+        if (removePaths.isEmpty()) {
+            return;
+        }
+        m_library.removePhotosFromAlbum(albumItem->text(), removePaths);
+        refreshAlbumsWorkspace();
+        statusBar()->showMessage("Photos removed from album.", 2000);
+    });
+
+    connect(m_albumList, &QListWidget::currentRowChanged, this, [this]() {
+        refreshAlbumsWorkspace();
+    });
+
+    connect(m_albumPhotoList, &QListWidget::itemDoubleClicked, this, [this](QListWidgetItem *item) {
+        if (!item) {
+            return;
+        }
+        const QString path = item->data(Qt::UserRole).toString();
+        QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+    });
+
+    connect(m_filesTree, &QTreeView::doubleClicked, this, [this](const QModelIndex &index) {
+        const QString path = m_fileModel->filePath(index);
+        if (!QFileInfo(path).isFile()) {
+            return;
+        }
+        QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+    });
+
+    connect(m_brightnessSlider, &QSlider::valueChanged, this, [this](int) {
+        applyEditorAdjustments();
+    });
+    connect(m_contrastSlider, &QSlider::valueChanged, this, [this](int) {
+        applyEditorAdjustments();
+    });
+    connect(m_grayscaleCheck, &QCheckBox::toggled, this, [this](bool) {
+        applyEditorAdjustments();
+    });
+
+    connect(m_editorResetButton, &QPushButton::clicked, this, [this]() {
+        m_brightnessSlider->setValue(0);
+        m_contrastSlider->setValue(0);
+        m_grayscaleCheck->setChecked(false);
+        applyEditorAdjustments();
+    });
+
+    connect(m_editorSaveCopyButton, &QPushButton::clicked, this, [this]() {
+        if (m_editorPreviewImage.isNull()) {
+            return;
+        }
+        const QString currentPath = currentPhotoPath();
+        const QString baseDir = currentPath.isEmpty() ? QDir::homePath() : QFileInfo(currentPath).absolutePath();
+        const QString savePath = QFileDialog::getSaveFileName(
+            this,
+            "Save edited copy",
+            QDir(baseDir).filePath("edited_copy.jpg"),
+            "Images (*.jpg *.jpeg *.png *.bmp *.webp)");
+
+        if (savePath.isEmpty()) {
+            return;
+        }
+
+        if (!m_editorPreviewImage.save(savePath)) {
+            QMessageBox::warning(this, "Save failed", "Could not save edited image.");
+            return;
+        }
+
+        statusBar()->showMessage("Edited copy saved.", 2500);
     });
 }
 
@@ -569,11 +765,9 @@ void MainWindow::openFolder()
         defaultPath,
         QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
-    if (selected.isEmpty()) {
-        return;
+    if (!selected.isEmpty()) {
+        openFolderPath(selected);
     }
-
-    openFolderPath(selected);
 }
 
 void MainWindow::openFolderPath(const QString &folderPath)
@@ -592,6 +786,9 @@ void MainWindow::openFolderPath(const QString &folderPath)
     m_favoritesOnly->setChecked(false);
 
     refreshList();
+    refreshAlbumsWorkspace();
+    refreshFilesWorkspace();
+
     m_recentFolders.removeAll(folderPath);
     m_recentFolders.prepend(folderPath);
     while (m_recentFolders.size() > 10) {
@@ -648,7 +845,6 @@ void MainWindow::refreshList()
     m_photoList->setIconSize(QSize(thumbSize, thumbSize));
 
     const int minimumRating = m_minRatingFilter->value();
-
     for (const auto &item : items) {
         if (item.rating < minimumRating) {
             continue;
@@ -660,14 +856,12 @@ void MainWindow::refreshList()
         const QPixmap thumb = pix.isNull()
             ? style()->standardIcon(QStyle::SP_FileIcon).pixmap(thumbSize, thumbSize)
             : pix.scaled(thumbSize, thumbSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-
         listItem->setIcon(QIcon(thumb));
 
         QString title = QFileInfo(item.absolutePath).fileName();
         if (item.favorite) {
             title.prepend("★ ");
         }
-
         if (item.rating > 0) {
             title.append(QString("  (%1/5)").arg(item.rating));
         }
@@ -694,6 +888,62 @@ void MainWindow::refreshList()
     if (m_photoList->count() == 0) {
         clearDetails();
     }
+
+    refreshAlbumsWorkspace();
+}
+
+void MainWindow::refreshAlbumsWorkspace()
+{
+    const QString currentAlbum = m_albumList->currentItem() ? m_albumList->currentItem()->text() : QString();
+
+    m_albumList->clear();
+    const auto albums = m_library.albumNames();
+    for (const auto &album : albums) {
+        m_albumList->addItem(album);
+    }
+
+    if (!currentAlbum.isEmpty()) {
+        for (int i = 0; i < m_albumList->count(); ++i) {
+            if (m_albumList->item(i)->text() == currentAlbum) {
+                m_albumList->setCurrentRow(i);
+                break;
+            }
+        }
+    }
+
+    if (m_albumList->currentRow() < 0 && m_albumList->count() > 0) {
+        m_albumList->setCurrentRow(0);
+    }
+
+    m_albumPhotoList->clear();
+    auto *albumItem = m_albumList->currentItem();
+    if (!albumItem) {
+        return;
+    }
+
+    const auto albumPhotos = m_library.photosForAlbum(albumItem->text());
+    for (const auto &path : albumPhotos) {
+        if (!m_library.contains(path)) {
+            continue;
+        }
+        auto *item = new QListWidgetItem(QFileInfo(path).fileName(), m_albumPhotoList);
+        item->setData(Qt::UserRole, path);
+        item->setToolTip(path);
+    }
+}
+
+void MainWindow::refreshFilesWorkspace()
+{
+    QString root = m_library.rootFolder();
+    if (root.isEmpty()) {
+        root = QDir::homePath();
+    }
+
+    const QModelIndex idx = m_fileModel->setRootPath(root);
+    m_filesTree->setRootIndex(idx);
+    m_filesTree->setColumnHidden(1, true);
+    m_filesTree->setColumnHidden(2, true);
+    m_filesTree->setColumnHidden(3, false);
 }
 
 void MainWindow::exportVisibleToCsv()
@@ -706,6 +956,7 @@ void MainWindow::exportVisibleToCsv()
     const QString defaultPath = m_library.rootFolder().isEmpty()
         ? QDir::homePath()
         : m_library.rootFolder();
+
     const QString filePath = QFileDialog::getSaveFileName(
         this,
         "Export visible photos to CSV",
@@ -724,15 +975,16 @@ void MainWindow::exportVisibleToCsv()
 
     QTextStream out(&file);
     out << "file_name,relative_path,favorite,rating,tags\n";
+
     for (int row = 0; row < m_photoList->count(); ++row) {
         auto *itemWidget = m_photoList->item(row);
         const QString path = itemWidget->data(Qt::UserRole).toString();
         const PhotoItem item = m_library.byAbsolutePath(path);
-        const QString fileName = QFileInfo(item.absolutePath).fileName();
-        const QString tags = item.tags.join("|");
-        QString escapedFileName = fileName;
+
+        QString escapedFileName = QFileInfo(item.absolutePath).fileName();
         QString escapedRelative = item.relativePath;
-        QString escapedTags = tags;
+        QString escapedTags = item.tags.join("|");
+
         escapedFileName.replace('"', "\"\"");
         escapedRelative.replace('"', "\"\"");
         escapedTags.replace('"', "\"\"");
@@ -744,19 +996,13 @@ void MainWindow::exportVisibleToCsv()
         out << '"' << escapedTags << "\"\n";
     }
 
-    file.close();
     statusBar()->showMessage("CSV export complete.", 2500);
 }
 
 void MainWindow::loadSelectionDetails()
 {
     const QString path = currentPhotoPath();
-    if (path.isEmpty()) {
-        clearDetails();
-        return;
-    }
-
-    if (!m_library.contains(path)) {
+    if (path.isEmpty() || !m_library.contains(path)) {
         clearDetails();
         return;
     }
@@ -780,6 +1026,7 @@ void MainWindow::loadSelectionDetails()
     m_favoriteCheck->setChecked(photo.favorite);
     m_ratingSpin->setValue(photo.rating);
     m_isLoadingSelection = false;
+
     setUnsavedChanges(false);
     m_saveButton->setEnabled(true);
     m_openPhotoButton->setEnabled(true);
@@ -787,6 +1034,8 @@ void MainWindow::loadSelectionDetails()
     m_copyPathButton->setEnabled(true);
     m_slideshowButton->setEnabled(true);
     m_bulkActionsButton->setEnabled(!selectedPhotoPaths().isEmpty());
+
+    loadEditorPhoto(photo.absolutePath);
 }
 
 void MainWindow::clearDetails()
@@ -799,6 +1048,7 @@ void MainWindow::clearDetails()
     m_favoriteCheck->setChecked(false);
     m_ratingSpin->setValue(0);
     m_isLoadingSelection = false;
+
     setUnsavedChanges(false);
     m_saveButton->setEnabled(false);
     m_openPhotoButton->setEnabled(false);
@@ -806,6 +1056,11 @@ void MainWindow::clearDetails()
     m_copyPathButton->setEnabled(false);
     m_slideshowButton->setEnabled(m_photoList->count() > 0);
     m_bulkActionsButton->setEnabled(false);
+
+    m_editorOriginalImage = QImage();
+    m_editorPreviewImage = QImage();
+    m_editorPreviewLabel->setText("Editor preview (select a photo)");
+    m_editorPreviewLabel->setPixmap(QPixmap());
 }
 
 void MainWindow::setUnsavedChanges(bool value)
@@ -815,6 +1070,93 @@ void MainWindow::setUnsavedChanges(bool value)
     if (value) {
         statusBar()->showMessage("Unsaved metadata changes.");
     }
+}
+
+void MainWindow::loadEditorPhoto(const QString &path)
+{
+    if (path.isEmpty()) {
+        m_editorOriginalImage = QImage();
+        m_editorPreviewImage = QImage();
+        updateEditorPreview();
+        return;
+    }
+
+    QImage loaded(path);
+    if (loaded.isNull()) {
+        return;
+    }
+
+    m_editorOriginalImage = loaded.convertToFormat(QImage::Format_RGB32);
+    m_brightnessSlider->blockSignals(true);
+    m_contrastSlider->blockSignals(true);
+    m_grayscaleCheck->blockSignals(true);
+    m_brightnessSlider->setValue(0);
+    m_contrastSlider->setValue(0);
+    m_grayscaleCheck->setChecked(false);
+    m_brightnessSlider->blockSignals(false);
+    m_contrastSlider->blockSignals(false);
+    m_grayscaleCheck->blockSignals(false);
+
+    applyEditorAdjustments();
+}
+
+void MainWindow::applyEditorAdjustments()
+{
+    m_editorPreviewImage = makeEditedImage();
+    updateEditorPreview();
+}
+
+QImage MainWindow::makeEditedImage() const
+{
+    if (m_editorOriginalImage.isNull()) {
+        return {};
+    }
+
+    QImage output = m_editorOriginalImage;
+    const int brightness = m_brightnessSlider->value();
+    const int contrast = m_contrastSlider->value();
+    const bool grayscale = m_grayscaleCheck->isChecked();
+
+    const double contrastFactor = (100.0 + contrast) / 100.0;
+
+    for (int y = 0; y < output.height(); ++y) {
+        QRgb *line = reinterpret_cast<QRgb *>(output.scanLine(y));
+        for (int x = 0; x < output.width(); ++x) {
+            QColor color = QColor::fromRgb(line[x]);
+            int r = color.red();
+            int g = color.green();
+            int b = color.blue();
+
+            r = qBound(0, static_cast<int>(std::round((r - 127) * contrastFactor + 127 + brightness)), 255);
+            g = qBound(0, static_cast<int>(std::round((g - 127) * contrastFactor + 127 + brightness)), 255);
+            b = qBound(0, static_cast<int>(std::round((b - 127) * contrastFactor + 127 + brightness)), 255);
+
+            if (grayscale) {
+                const int gray = qGray(r, g, b);
+                r = gray;
+                g = gray;
+                b = gray;
+            }
+
+            line[x] = qRgb(r, g, b);
+        }
+    }
+
+    return output;
+}
+
+void MainWindow::updateEditorPreview()
+{
+    if (m_editorPreviewImage.isNull()) {
+        m_editorPreviewLabel->setText("Editor preview (select a photo)");
+        m_editorPreviewLabel->setPixmap(QPixmap());
+        return;
+    }
+
+    m_editorPreviewLabel->setPixmap(QPixmap::fromImage(m_editorPreviewImage).scaled(
+        m_editorPreviewLabel->size(),
+        Qt::KeepAspectRatio,
+        Qt::SmoothTransformation));
 }
 
 QString MainWindow::currentPhotoPath() const
