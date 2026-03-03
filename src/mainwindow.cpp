@@ -53,7 +53,12 @@ void MainWindow::setupUi()
         "QMainWindow {"
         "  background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #0b1020, stop:1 #111827);"
         "}"
-        "QWidget { color: #e6edf6; font-size: 13px; }"
+                "QWidget { color: #e6edf6; font-size: 13px; background: transparent; }"
+                "QWidget#FilterCard, QWidget#DetailsCard {"
+                "  background: rgba(15, 23, 42, 0.92);"
+                "  border: 1px solid #23324a;"
+                "  border-radius: 14px;"
+                "}"
         "QLabel { color: #c9d6ea; }"
         "QLineEdit, QSpinBox, QComboBox, QListWidget {"
         "  background: rgba(17, 24, 39, 0.92);"
@@ -73,6 +78,7 @@ void MainWindow::setupUi()
         "}"
         "QPushButton:hover { background: #2563eb; }"
         "QPushButton:disabled { background: #334155; color: #94a3b8; }"
+        "QPushButton:focus { border: 1px solid #60a5fa; }"
         "QToolButton {"
         "  background: rgba(17, 24, 39, 0.8);"
         "  border: 1px solid #2f3f5c;"
@@ -80,8 +86,19 @@ void MainWindow::setupUi()
         "  padding: 6px 10px;"
         "  color: #e2e8f0;"
         "}"
+        "QToolButton:hover { background: rgba(30, 41, 59, 0.92); }"
         "QToolButton::menu-indicator { image: none; width: 0px; }"
         "QCheckBox::indicator { width: 16px; height: 16px; }"
+        "QCheckBox::indicator:unchecked { border: 1px solid #3b4c6a; background: #111827; border-radius: 4px; }"
+        "QCheckBox::indicator:checked { border: 1px solid #60a5fa; background: #1d4ed8; border-radius: 4px; }"
+        "QListWidget::item { background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 4px; }"
+        "QListWidget::item:hover { background: rgba(59, 130, 246, 0.16); border-color: rgba(96, 165, 250, 0.3); }"
+        "QListWidget::item:selected { background: rgba(37, 99, 235, 0.28); border-color: #3b82f6; color: #f8fbff; }"
+        "QToolBar { background: rgba(15, 23, 42, 0.9); border: 1px solid #23324a; border-radius: 10px; spacing: 4px; }"
+        "QToolBar::separator { width: 1px; background: #23324a; margin: 4px; }"
+        "QSplitter::handle { background: #23324a; margin: 0 3px; border-radius: 2px; }"
+        "QSplitter::handle:hover { background: #334a6c; }"
+        "QFrame { border-color: #2f3f5c; }"
         "QMenuBar, QMenu { background: #0f172a; color: #f8fafc; }"
         "QMenu::item:selected { background: #1e3a8a; }"
         "QStatusBar { background: #0b1220; color: #94a3b8; }"
@@ -93,10 +110,10 @@ void MainWindow::setupUi()
     rootLayout->setSpacing(12);
 
     auto *filterCard = new QWidget(this);
+    filterCard->setObjectName("FilterCard");
     auto *filterCardLayout = new QVBoxLayout(filterCard);
     filterCardLayout->setContentsMargins(12, 12, 12, 12);
     filterCardLayout->setSpacing(8);
-    filterCard->setStyleSheet("background: rgba(15, 23, 42, 0.82); border: 1px solid #23324a; border-radius: 14px;");
 
     auto *searchRow = new QHBoxLayout();
     searchRow->setSpacing(8);
@@ -150,10 +167,10 @@ void MainWindow::setupUi()
     m_photoList->setWordWrap(true);
 
     auto *detailsPanel = new QWidget(this);
+    detailsPanel->setObjectName("DetailsCard");
     auto *detailsLayout = new QVBoxLayout(detailsPanel);
     detailsLayout->setContentsMargins(12, 12, 12, 12);
     detailsLayout->setSpacing(10);
-    detailsPanel->setStyleSheet("background: rgba(15, 23, 42, 0.82); border: 1px solid #23324a; border-radius: 14px;");
 
     m_previewLabel = new QLabel(this);
     m_previewLabel->setMinimumSize(420, 300);
