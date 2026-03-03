@@ -3,9 +3,9 @@
 1. [x] Saved search presets (create)
 2. [x] Saved search presets (apply)
 3. [x] Saved search presets (delete)
-4. [ ] Smart albums (Favorites)
-5. [ ] Smart albums (Top Rated)
-6. [ ] Smart albums (Untagged)
+4. [x] Smart albums (Favorites)
+5. [x] Smart albums (Top Rated)
+6. [x] Smart albums (Untagged)
 7. [ ] Albums photo count badges
 8. [ ] Timeline workspace tab
 9. [ ] Files workspace batch rename selected file

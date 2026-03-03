@@ -761,6 +761,10 @@ void MainWindow::setupConnections()
         if (!item) {
             return;
         }
+        if (item->text().startsWith("Smart: ")) {
+            statusBar()->showMessage("Smart albums are dynamic and cannot be deleted.", 2200);
+            return;
+        }
         m_library.deleteAlbum(item->text());
         refreshAlbumsWorkspace();
         statusBar()->showMessage("Album deleted.", 2000);
@@ -769,6 +773,10 @@ void MainWindow::setupConnections()
     connect(m_addToAlbumButton, &QPushButton::clicked, this, [this]() {
         const auto *albumItem = m_albumList->currentItem();
         if (!albumItem) {
+            return;
+        }
+        if (albumItem->text().startsWith("Smart: ")) {
+            statusBar()->showMessage("Cannot manually add photos to smart albums.", 2200);
             return;
         }
         const auto selected = selectedPhotoPaths();
@@ -783,6 +791,10 @@ void MainWindow::setupConnections()
     connect(m_removeFromAlbumButton, &QPushButton::clicked, this, [this]() {
         const auto *albumItem = m_albumList->currentItem();
         if (!albumItem) {
+            return;
+        }
+        if (albumItem->text().startsWith("Smart: ")) {
+            statusBar()->showMessage("Cannot manually remove photos from smart albums.", 2200);
             return;
         }
         QStringList removePaths;
@@ -1019,6 +1031,9 @@ void MainWindow::refreshAlbumsWorkspace()
     const QString currentAlbum = m_albumList->currentItem() ? m_albumList->currentItem()->text() : QString();
 
     m_albumList->clear();
+    m_albumList->addItem("Smart: Favorites");
+    m_albumList->addItem("Smart: Top Rated (4+) ");
+    m_albumList->addItem("Smart: Untagged");
     const auto albums = m_library.albumNames();
     for (const auto &album : albums) {
         m_albumList->addItem(album);
@@ -1043,14 +1058,37 @@ void MainWindow::refreshAlbumsWorkspace()
         return;
     }
 
-    const auto albumPhotos = m_library.photosForAlbum(albumItem->text());
-    for (const auto &path : albumPhotos) {
+    QStringList displayPaths;
+    const QString selected = albumItem->text();
+    if (selected == "Smart: Favorites") {
+        for (const auto &photo : m_library.allItems()) {
+            if (photo.favorite) {
+                displayPaths.push_back(photo.absolutePath);
+            }
+        }
+    } else if (selected == "Smart: Top Rated (4+) ") {
+        for (const auto &photo : m_library.allItems()) {
+            if (photo.rating >= 4) {
+                displayPaths.push_back(photo.absolutePath);
+            }
+        }
+    } else if (selected == "Smart: Untagged") {
+        for (const auto &photo : m_library.allItems()) {
+            if (photo.tags.isEmpty()) {
+                displayPaths.push_back(photo.absolutePath);
+            }
+        }
+    } else {
+        displayPaths = m_library.photosForAlbum(selected);
+    }
+
+    for (const auto &path : displayPaths) {
         if (!m_library.contains(path)) {
             continue;
         }
-        auto *item = new QListWidgetItem(QFileInfo(path).fileName(), m_albumPhotoList);
-        item->setData(Qt::UserRole, path);
-        item->setToolTip(path);
+        auto *listItem = new QListWidgetItem(QFileInfo(path).fileName(), m_albumPhotoList);
+        listItem->setData(Qt::UserRole, path);
+        listItem->setToolTip(path);
     }
 }
 
