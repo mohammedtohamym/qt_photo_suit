@@ -11,7 +11,7 @@ The following 20 features are implemented one-by-one with one Git commit per fea
 7. [x] Multi-selection support
 8. [x] Bulk add tags for selected photos
 9. [x] Bulk favorite toggle for selected photos
-10. [ ] Bulk rating apply for selected photos
+10. [x] Bulk rating apply for selected photos
 11. [ ] Keyboard shortcuts for next/previous photo
 12. [ ] Open selected photo button
 13. [ ] Copy selected photo path button
