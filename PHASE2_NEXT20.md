@@ -13,7 +13,7 @@
 11. [x] Files workspace open containing folder action
 12. [x] Editor saturation control
 13. [x] Editor temperature control
-14. [ ] Editor sepia effect
+14. [x] Editor sepia effect
 15. [ ] Editor vignette effect
 16. [ ] Editor before/after toggle
 17. [ ] Editor auto-enhance action

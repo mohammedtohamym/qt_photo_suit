@@ -387,6 +387,7 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     m_temperatureSlider->setValue(0);
 
     m_grayscaleCheck = new QCheckBox("Grayscale", this);
+    m_sepiaCheck = new QCheckBox("Sepia", this);
     m_editorRotateLeftButton = new QPushButton("Rotate Left", this);
     m_editorRotateRightButton = new QPushButton("Rotate Right", this);
     m_editorResetButton = new QPushButton("Reset", this);
@@ -409,6 +410,7 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     editorLayout->addWidget(new QLabel("Temperature", this));
     editorLayout->addWidget(m_temperatureSlider);
     editorLayout->addWidget(m_grayscaleCheck);
+    editorLayout->addWidget(m_sepiaCheck);
     editorLayout->addLayout(editorActions);
 
     m_suiteTabs->addTab(m_organizeTab, "Organize");
@@ -983,6 +985,9 @@ void MainWindow::setupConnections()
     connect(m_grayscaleCheck, &QCheckBox::toggled, this, [this](bool) {
         applyEditorAdjustments();
     });
+    connect(m_sepiaCheck, &QCheckBox::toggled, this, [this](bool) {
+        applyEditorAdjustments();
+    });
 
     connect(m_editorResetButton, &QPushButton::clicked, this, [this]() {
         m_brightnessSlider->setValue(0);
@@ -990,6 +995,7 @@ void MainWindow::setupConnections()
         m_saturationSlider->setValue(0);
         m_temperatureSlider->setValue(0);
         m_grayscaleCheck->setChecked(false);
+        m_sepiaCheck->setChecked(false);
         applyEditorAdjustments();
     });
 
@@ -1449,16 +1455,19 @@ void MainWindow::loadEditorPhoto(const QString &path)
     m_saturationSlider->blockSignals(true);
     m_temperatureSlider->blockSignals(true);
     m_grayscaleCheck->blockSignals(true);
+    m_sepiaCheck->blockSignals(true);
     m_brightnessSlider->setValue(0);
     m_contrastSlider->setValue(0);
     m_saturationSlider->setValue(0);
     m_temperatureSlider->setValue(0);
     m_grayscaleCheck->setChecked(false);
+    m_sepiaCheck->setChecked(false);
     m_brightnessSlider->blockSignals(false);
     m_contrastSlider->blockSignals(false);
     m_saturationSlider->blockSignals(false);
     m_temperatureSlider->blockSignals(false);
     m_grayscaleCheck->blockSignals(false);
+    m_sepiaCheck->blockSignals(false);
 
     applyEditorAdjustments();
 }
@@ -1481,6 +1490,7 @@ QImage MainWindow::makeEditedImage() const
     const int saturation = m_saturationSlider->value();
     const int temperature = m_temperatureSlider->value();
     const bool grayscale = m_grayscaleCheck->isChecked();
+    const bool sepia = m_sepiaCheck->isChecked();
 
     const double contrastFactor = (100.0 + contrast) / 100.0;
 
@@ -1519,6 +1529,15 @@ QImage MainWindow::makeEditedImage() const
                 const int delta = static_cast<int>(std::round(temperature * 0.9));
                 r = qBound(0, r + delta, 255);
                 b = qBound(0, b - delta, 255);
+            }
+
+            if (sepia) {
+                const int tr = qBound(0, static_cast<int>(0.393 * r + 0.769 * g + 0.189 * b), 255);
+                const int tg = qBound(0, static_cast<int>(0.349 * r + 0.686 * g + 0.168 * b), 255);
+                const int tb = qBound(0, static_cast<int>(0.272 * r + 0.534 * g + 0.131 * b), 255);
+                r = tr;
+                g = tg;
+                b = tb;
             }
 
             line[x] = qRgb(r, g, b);
