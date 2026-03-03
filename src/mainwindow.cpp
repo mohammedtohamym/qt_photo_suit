@@ -394,6 +394,7 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     m_sepiaCheck = new QCheckBox("Sepia", this);
     m_editorRotateLeftButton = new QPushButton("Rotate Left", this);
     m_editorRotateRightButton = new QPushButton("Rotate Right", this);
+    m_editorAutoEnhanceButton = new QPushButton("Auto Enhance", this);
     m_editorBeforeAfterButton = new QPushButton("Before/After", this);
     m_editorBeforeAfterButton->setCheckable(true);
     m_editorResetButton = new QPushButton("Reset", this);
@@ -402,6 +403,7 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     auto *editorActions = new QHBoxLayout();
     editorActions->addWidget(m_editorRotateLeftButton);
     editorActions->addWidget(m_editorRotateRightButton);
+    editorActions->addWidget(m_editorAutoEnhanceButton);
     editorActions->addWidget(m_editorBeforeAfterButton);
     editorActions->addWidget(m_editorResetButton);
     editorActions->addStretch(1);
@@ -1031,6 +1033,30 @@ void MainWindow::setupConnections()
         }
         m_editorOriginalImage = m_editorOriginalImage.transformed(QTransform().rotate(90), Qt::SmoothTransformation);
         applyEditorAdjustments();
+    });
+
+    connect(m_editorAutoEnhanceButton, &QPushButton::clicked, this, [this]() {
+        if (m_editorOriginalImage.isNull()) {
+            return;
+        }
+
+        double sumLuma = 0.0;
+        const int pixelCount = m_editorOriginalImage.width() * m_editorOriginalImage.height();
+        for (int y = 0; y < m_editorOriginalImage.height(); ++y) {
+            const QRgb *line = reinterpret_cast<const QRgb *>(m_editorOriginalImage.constScanLine(y));
+            for (int x = 0; x < m_editorOriginalImage.width(); ++x) {
+                sumLuma += qGray(line[x]);
+            }
+        }
+
+        const double avg = pixelCount > 0 ? sumLuma / pixelCount : 127.0;
+        const int targetBrightness = qBound(-30, static_cast<int>(std::round((127.0 - avg) * 0.35)), 30);
+
+        m_brightnessSlider->setValue(targetBrightness);
+        m_contrastSlider->setValue(12);
+        m_saturationSlider->setValue(10);
+        m_temperatureSlider->setValue(4);
+        statusBar()->showMessage("Auto-enhance applied.", 2200);
     });
 
     connect(m_editorSaveCopyButton, &QPushButton::clicked, this, [this]() {

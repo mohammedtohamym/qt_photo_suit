@@ -121,6 +121,7 @@ private:
     QCheckBox *m_sepiaCheck = nullptr;
     QPushButton *m_editorRotateLeftButton = nullptr;
     QPushButton *m_editorRotateRightButton = nullptr;
+    QPushButton *m_editorAutoEnhanceButton = nullptr;
     QPushButton *m_editorBeforeAfterButton = nullptr;
     QPushButton *m_editorResetButton = nullptr;
     QPushButton *m_editorSaveCopyButton = nullptr;

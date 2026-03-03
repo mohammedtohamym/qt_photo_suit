@@ -16,7 +16,7 @@
 14. [x] Editor sepia effect
 15. [x] Editor vignette effect
 16. [x] Editor before/after toggle
-17. [ ] Editor auto-enhance action
+17. [x] Editor auto-enhance action
 18. [ ] Editor undo history
 19. [ ] Editor redo history
 20. [ ] Editor snapshots (save/apply)
