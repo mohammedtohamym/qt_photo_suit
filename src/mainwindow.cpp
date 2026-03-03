@@ -382,6 +382,10 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     m_saturationSlider->setRange(-100, 100);
     m_saturationSlider->setValue(0);
 
+    m_temperatureSlider = new QSlider(Qt::Horizontal, this);
+    m_temperatureSlider->setRange(-100, 100);
+    m_temperatureSlider->setValue(0);
+
     m_grayscaleCheck = new QCheckBox("Grayscale", this);
     m_editorRotateLeftButton = new QPushButton("Rotate Left", this);
     m_editorRotateRightButton = new QPushButton("Rotate Right", this);
@@ -402,6 +406,8 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     editorLayout->addWidget(m_contrastSlider);
     editorLayout->addWidget(new QLabel("Saturation", this));
     editorLayout->addWidget(m_saturationSlider);
+    editorLayout->addWidget(new QLabel("Temperature", this));
+    editorLayout->addWidget(m_temperatureSlider);
     editorLayout->addWidget(m_grayscaleCheck);
     editorLayout->addLayout(editorActions);
 
@@ -971,6 +977,9 @@ void MainWindow::setupConnections()
     connect(m_saturationSlider, &QSlider::valueChanged, this, [this](int) {
         applyEditorAdjustments();
     });
+    connect(m_temperatureSlider, &QSlider::valueChanged, this, [this](int) {
+        applyEditorAdjustments();
+    });
     connect(m_grayscaleCheck, &QCheckBox::toggled, this, [this](bool) {
         applyEditorAdjustments();
     });
@@ -979,6 +988,7 @@ void MainWindow::setupConnections()
         m_brightnessSlider->setValue(0);
         m_contrastSlider->setValue(0);
         m_saturationSlider->setValue(0);
+        m_temperatureSlider->setValue(0);
         m_grayscaleCheck->setChecked(false);
         applyEditorAdjustments();
     });
@@ -1437,14 +1447,17 @@ void MainWindow::loadEditorPhoto(const QString &path)
     m_brightnessSlider->blockSignals(true);
     m_contrastSlider->blockSignals(true);
     m_saturationSlider->blockSignals(true);
+    m_temperatureSlider->blockSignals(true);
     m_grayscaleCheck->blockSignals(true);
     m_brightnessSlider->setValue(0);
     m_contrastSlider->setValue(0);
     m_saturationSlider->setValue(0);
+    m_temperatureSlider->setValue(0);
     m_grayscaleCheck->setChecked(false);
     m_brightnessSlider->blockSignals(false);
     m_contrastSlider->blockSignals(false);
     m_saturationSlider->blockSignals(false);
+    m_temperatureSlider->blockSignals(false);
     m_grayscaleCheck->blockSignals(false);
 
     applyEditorAdjustments();
@@ -1466,6 +1479,7 @@ QImage MainWindow::makeEditedImage() const
     const int brightness = m_brightnessSlider->value();
     const int contrast = m_contrastSlider->value();
     const int saturation = m_saturationSlider->value();
+    const int temperature = m_temperatureSlider->value();
     const bool grayscale = m_grayscaleCheck->isChecked();
 
     const double contrastFactor = (100.0 + contrast) / 100.0;
@@ -1499,6 +1513,12 @@ QImage MainWindow::makeEditedImage() const
                     g = adjusted.green();
                     b = adjusted.blue();
                 }
+            }
+
+            if (temperature != 0) {
+                const int delta = static_cast<int>(std::round(temperature * 0.9));
+                r = qBound(0, r + delta, 255);
+                b = qBound(0, b - delta, 255);
             }
 
             line[x] = qRgb(r, g, b);
