@@ -9,6 +9,7 @@
 #include <QListWidget>
 #include <QMainWindow>
 #include <QPushButton>
+#include <QSlider>
 #include <QSpinBox>
 
 class MainWindow : public QMainWindow {
@@ -38,6 +39,7 @@ private:
     QLineEdit *m_tagFilter = nullptr;
     QCheckBox *m_favoritesOnly = nullptr;
     QComboBox *m_sortCombo = nullptr;
+    QSlider *m_thumbSizeSlider = nullptr;
 
     QListWidget *m_photoList = nullptr;
 

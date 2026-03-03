@@ -68,6 +68,10 @@ void MainWindow::setupUi()
     m_favoritesOnly = new QCheckBox("Favorites only", this);
     m_sortCombo = new QComboBox(this);
     m_sortCombo->addItems({"Name (A-Z)", "Name (Z-A)", "Rating (High-Low)", "Path"});
+    m_thumbSizeSlider = new QSlider(Qt::Horizontal, this);
+    m_thumbSizeSlider->setRange(80, 220);
+    m_thumbSizeSlider->setValue(140);
+    m_thumbSizeSlider->setMaximumWidth(140);
 
     filtersLayout->addWidget(new QLabel("Name:", this));
     filtersLayout->addWidget(m_nameFilter, 2);
@@ -76,6 +80,8 @@ void MainWindow::setupUi()
     filtersLayout->addWidget(m_favoritesOnly);
     filtersLayout->addWidget(new QLabel("Sort:", this));
     filtersLayout->addWidget(m_sortCombo);
+    filtersLayout->addWidget(new QLabel("Thumb:", this));
+    filtersLayout->addWidget(m_thumbSizeSlider);
 
     auto *splitter = new QSplitter(Qt::Horizontal, this);
 
@@ -188,6 +194,10 @@ void MainWindow::setupConnections()
     connect(m_sortCombo, &QComboBox::currentTextChanged, this, [this]() {
         refreshList();
     });
+    connect(m_thumbSizeSlider, &QSlider::valueChanged, this, [this](int value) {
+        m_photoList->setIconSize(QSize(value, value));
+        refreshList();
+    });
     connect(m_favoritesOnly, &QCheckBox::toggled, this, [this]() {
         refreshList();
     });
@@ -283,13 +293,16 @@ void MainWindow::refreshList()
         return leftName < rightName;
     });
 
+    const int thumbSize = m_thumbSizeSlider->value();
+    m_photoList->setIconSize(QSize(thumbSize, thumbSize));
+
     for (const auto &item : items) {
         auto *listItem = new QListWidgetItem(m_photoList);
 
         const QPixmap pix(item.absolutePath);
         const QPixmap thumb = pix.isNull()
-            ? style()->standardIcon(QStyle::SP_FileIcon).pixmap(140, 140)
-            : pix.scaled(140, 140, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+            ? style()->standardIcon(QStyle::SP_FileIcon).pixmap(thumbSize, thumbSize)
+            : pix.scaled(thumbSize, thumbSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
 
         listItem->setIcon(QIcon(thumb));
 
