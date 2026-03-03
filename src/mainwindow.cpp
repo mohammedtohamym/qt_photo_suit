@@ -12,6 +12,7 @@
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QPixmap>
+#include <QRandomGenerator>
 #include <QShortcut>
 #include <QSplitter>
 #include <QSettings>
@@ -236,10 +237,18 @@ void MainWindow::setupToolbar()
 
     auto *openAction = toolbar->addAction(style()->standardIcon(QStyle::SP_DirOpenIcon), "Open");
     auto *refreshAction = toolbar->addAction(style()->standardIcon(QStyle::SP_BrowserReload), "Refresh");
+    auto *randomAction = toolbar->addAction(style()->standardIcon(QStyle::SP_BrowserStop), "Random");
     auto *clearFiltersAction = toolbar->addAction(style()->standardIcon(QStyle::SP_DialogResetButton), "Clear Filters");
 
     connect(openAction, &QAction::triggered, this, &MainWindow::openFolder);
     connect(refreshAction, &QAction::triggered, this, &MainWindow::refreshList);
+    connect(randomAction, &QAction::triggered, this, [this]() {
+        if (m_photoList->count() == 0) {
+            return;
+        }
+        const int row = QRandomGenerator::global()->bounded(m_photoList->count());
+        m_photoList->setCurrentRow(row);
+    });
     connect(clearFiltersAction, &QAction::triggered, this, [this]() {
         m_nameFilter->clear();
         m_tagFilter->clear();
