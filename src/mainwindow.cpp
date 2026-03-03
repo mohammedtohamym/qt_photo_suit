@@ -1330,8 +1330,11 @@ void MainWindow::refreshTimelineWorkspace()
 
 void MainWindow::refreshAlbumsWorkspace()
 {
-    const QString currentAlbum = m_albumList->currentItem() ? m_albumList->currentItem()->text() : QString();
+    const QString currentAlbum = m_albumList->currentItem()
+        ? m_albumList->currentItem()->data(Qt::UserRole).toString()
+        : QString();
 
+    m_albumList->blockSignals(true);
     m_albumList->clear();
     int favoritesCount = 0;
     int topRatedCount = 0;
@@ -1364,7 +1367,7 @@ void MainWindow::refreshAlbumsWorkspace()
 
     if (!currentAlbum.isEmpty()) {
         for (int i = 0; i < m_albumList->count(); ++i) {
-            if (m_albumList->item(i)->text() == currentAlbum) {
+            if (m_albumList->item(i)->data(Qt::UserRole).toString() == currentAlbum) {
                 m_albumList->setCurrentRow(i);
                 break;
             }
@@ -1374,6 +1377,7 @@ void MainWindow::refreshAlbumsWorkspace()
     if (m_albumList->currentRow() < 0 && m_albumList->count() > 0) {
         m_albumList->setCurrentRow(0);
     }
+    m_albumList->blockSignals(false);
 
     m_albumPhotoList->clear();
     auto *albumItem = m_albumList->currentItem();
