@@ -31,6 +31,11 @@ MainWindow::MainWindow()
     setupToolbar();
     setupConnections();
     statusBar()->showMessage("Open a folder to start organizing photos.");
+
+    const QString lastFolder = QSettings("PhotoOrganizerQt", "PhotoOrganizerQt").value("lastFolder").toString();
+    if (!lastFolder.isEmpty() && QFileInfo(lastFolder).isDir()) {
+        openFolderPath(lastFolder);
+    }
 }
 
 void MainWindow::setupUi()
@@ -433,6 +438,7 @@ void MainWindow::openFolderPath(const QString &folderPath)
         m_recentFolders.removeLast();
     }
     QSettings("PhotoOrganizerQt", "PhotoOrganizerQt").setValue("recentFolders", m_recentFolders);
+    QSettings("PhotoOrganizerQt", "PhotoOrganizerQt").setValue("lastFolder", folderPath);
     updateRecentFoldersMenu();
 
     statusBar()->showMessage(QString("Loaded %1 photos from %2")
