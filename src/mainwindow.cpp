@@ -401,6 +401,9 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     m_editorBeforeAfterButton->setCheckable(true);
     m_editorResetButton = new QPushButton("Reset", this);
     m_editorSaveCopyButton = new QPushButton("Save edited copy", this);
+    m_editorSaveSnapshotButton = new QPushButton("Save Snapshot", this);
+    m_editorSnapshotsList = new QListWidget(this);
+    m_editorSnapshotsList->setMinimumHeight(120);
 
     auto *editorActions = new QHBoxLayout();
     editorActions->addWidget(m_editorRotateLeftButton);
@@ -411,6 +414,7 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     editorActions->addWidget(m_editorBeforeAfterButton);
     editorActions->addWidget(m_editorResetButton);
     editorActions->addStretch(1);
+    editorActions->addWidget(m_editorSaveSnapshotButton);
     editorActions->addWidget(m_editorSaveCopyButton);
 
     editorLayout->addWidget(m_editorPreviewLabel, 1);
@@ -427,6 +431,8 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     editorLayout->addWidget(m_grayscaleCheck);
     editorLayout->addWidget(m_sepiaCheck);
     editorLayout->addLayout(editorActions);
+    editorLayout->addWidget(new QLabel("Snapshots", this));
+    editorLayout->addWidget(m_editorSnapshotsList);
 
     m_suiteTabs->addTab(m_organizeTab, "Organize");
     m_suiteTabs->addTab(m_albumsTab, "Albums");
@@ -1111,6 +1117,47 @@ void MainWindow::setupConnections()
 
         statusBar()->showMessage("Edited copy saved.", 2500);
     });
+
+    connect(m_editorSaveSnapshotButton, &QPushButton::clicked, this, [this]() {
+        if (m_editorPreviewImage.isNull()) {
+            return;
+        }
+
+        const QString name = QInputDialog::getText(this, "Save Snapshot", "Snapshot name:").trimmed();
+        if (name.isEmpty()) {
+            return;
+        }
+
+        m_editorSnapshots.insert(name, m_editorPreviewImage);
+        m_editorSnapshotsList->clear();
+        for (const auto &snapshotName : m_editorSnapshots.keys()) {
+            m_editorSnapshotsList->addItem(snapshotName);
+        }
+        statusBar()->showMessage("Snapshot saved.", 2000);
+    });
+
+    connect(m_editorSnapshotsList, &QListWidget::itemDoubleClicked, this, [this](QListWidgetItem *item) {
+        if (!item) {
+            return;
+        }
+        const QString key = item->text();
+        if (!m_editorSnapshots.contains(key)) {
+            return;
+        }
+
+        m_editorUndoStack.push_back(m_editorOriginalImage);
+        m_editorRedoStack.clear();
+        m_editorOriginalImage = m_editorSnapshots.value(key).convertToFormat(QImage::Format_RGB32);
+        m_brightnessSlider->setValue(0);
+        m_contrastSlider->setValue(0);
+        m_saturationSlider->setValue(0);
+        m_temperatureSlider->setValue(0);
+        m_vignetteSlider->setValue(0);
+        m_grayscaleCheck->setChecked(false);
+        m_sepiaCheck->setChecked(false);
+        applyEditorAdjustments();
+        statusBar()->showMessage("Snapshot applied.", 2000);
+    });
 }
 
 void MainWindow::openFolder()
@@ -1497,6 +1544,8 @@ void MainWindow::clearDetails()
     m_editorPreviewImage = QImage();
     m_editorUndoStack.clear();
     m_editorRedoStack.clear();
+    m_editorSnapshots.clear();
+    m_editorSnapshotsList->clear();
     m_editorBeforeAfterButton->setChecked(false);
     m_editorShowOriginal = false;
     m_editorPreviewLabel->setText("Editor preview (select a photo)");
@@ -1529,6 +1578,8 @@ void MainWindow::loadEditorPhoto(const QString &path)
     m_editorOriginalImage = loaded.convertToFormat(QImage::Format_RGB32);
     m_editorUndoStack.clear();
     m_editorRedoStack.clear();
+    m_editorSnapshots.clear();
+    m_editorSnapshotsList->clear();
     m_brightnessSlider->blockSignals(true);
     m_contrastSlider->blockSignals(true);
     m_saturationSlider->blockSignals(true);

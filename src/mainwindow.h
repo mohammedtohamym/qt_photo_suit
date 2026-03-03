@@ -13,6 +13,7 @@
 #include <QSlider>
 #include <QSpinBox>
 #include <QVector>
+#include <QMap>
 
 class QMenu;
 class QTimer;
@@ -128,10 +129,13 @@ private:
     QPushButton *m_editorBeforeAfterButton = nullptr;
     QPushButton *m_editorResetButton = nullptr;
     QPushButton *m_editorSaveCopyButton = nullptr;
+    QPushButton *m_editorSaveSnapshotButton = nullptr;
+    QListWidget *m_editorSnapshotsList = nullptr;
     QImage m_editorOriginalImage;
     QImage m_editorPreviewImage;
     QVector<QImage> m_editorUndoStack;
     QVector<QImage> m_editorRedoStack;
+    QMap<QString, QImage> m_editorSnapshots;
 
     QMenu *m_recentFoldersMenu = nullptr;
     QStringList m_recentFolders;

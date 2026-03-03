@@ -19,4 +19,4 @@
 17. [x] Editor auto-enhance action
 18. [x] Editor undo history
 19. [x] Editor redo history
-20. [ ] Editor snapshots (save/apply)
+20. [x] Editor snapshots (save/apply)
