@@ -31,6 +31,13 @@ public:
     void updateFavorite(const QString &absolutePath, bool favorite);
     void updateRating(const QString &absolutePath, int rating);
 
+    QStringList albumNames() const;
+    QStringList photosForAlbum(const QString &albumName) const;
+    bool createAlbum(const QString &albumName);
+    void deleteAlbum(const QString &albumName);
+    void addPhotosToAlbum(const QString &albumName, const QStringList &absolutePaths);
+    void removePhotosFromAlbum(const QString &albumName, const QStringList &absolutePaths);
+
 private:
     QString metadataFilePath() const;
     void scanImages();
@@ -44,4 +51,5 @@ private:
     QString m_rootFolder;
     QVector<PhotoItem> m_items;
     QHash<QString, int> m_indexByPath;
+    QHash<QString, QStringList> m_albums;
 };

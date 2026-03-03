@@ -8,6 +8,8 @@
 #include <QJsonDocument>
 #include <QSet>
 
+#include <algorithm>
+
 bool PhotoLibrary::loadFolder(const QString &folderPath)
 {
     if (folderPath.isEmpty()) {
@@ -123,6 +125,77 @@ void PhotoLibrary::updateRating(const QString &absolutePath, int rating)
     saveMetadata();
 }
 
+QStringList PhotoLibrary::albumNames() const
+{
+    auto names = m_albums.keys();
+    names.sort(Qt::CaseInsensitive);
+    return names;
+}
+
+QStringList PhotoLibrary::photosForAlbum(const QString &albumName) const
+{
+    return m_albums.value(albumName);
+}
+
+bool PhotoLibrary::createAlbum(const QString &albumName)
+{
+    const QString trimmed = albumName.trimmed();
+    if (trimmed.isEmpty() || m_albums.contains(trimmed)) {
+        return false;
+    }
+
+    m_albums.insert(trimmed, {});
+    saveMetadata();
+    return true;
+}
+
+void PhotoLibrary::deleteAlbum(const QString &albumName)
+{
+    if (!m_albums.remove(albumName)) {
+        return;
+    }
+    saveMetadata();
+}
+
+void PhotoLibrary::addPhotosToAlbum(const QString &albumName, const QStringList &absolutePaths)
+{
+    if (!m_albums.contains(albumName)) {
+        return;
+    }
+
+    QStringList entries = m_albums.value(albumName);
+    QSet<QString> dedupe(entries.begin(), entries.end());
+    for (const auto &path : absolutePaths) {
+        if (!contains(path)) {
+            continue;
+        }
+        if (dedupe.contains(path)) {
+            continue;
+        }
+        dedupe.insert(path);
+        entries.push_back(path);
+    }
+
+    m_albums[albumName] = entries;
+    saveMetadata();
+}
+
+void PhotoLibrary::removePhotosFromAlbum(const QString &albumName, const QStringList &absolutePaths)
+{
+    if (!m_albums.contains(albumName)) {
+        return;
+    }
+
+    QSet<QString> removeSet(absolutePaths.begin(), absolutePaths.end());
+    auto entries = m_albums.value(albumName);
+    entries.erase(std::remove_if(entries.begin(), entries.end(), [&removeSet](const QString &path) {
+        return removeSet.contains(path);
+    }), entries.end());
+
+    m_albums[albumName] = entries;
+    saveMetadata();
+}
+
 QString PhotoLibrary::metadataFilePath() const
 {
     return QDir(m_rootFolder).filePath(".photo_organizer.json");
@@ -155,6 +228,8 @@ void PhotoLibrary::scanImages()
 
 void PhotoLibrary::loadMetadata()
 {
+    m_albums.clear();
+
     QFile file(metadataFilePath());
     if (!file.exists()) {
         return;
@@ -195,6 +270,29 @@ void PhotoLibrary::loadMetadata()
         item.favorite = obj.value("favorite").toBool(false);
         item.rating = qBound(0, obj.value("rating").toInt(0), 5);
     }
+
+    const auto albumsObj = rootObj.value("albums").toObject();
+    for (auto it = albumsObj.begin(); it != albumsObj.end(); ++it) {
+        const QString albumName = it.key().trimmed();
+        if (albumName.isEmpty()) {
+            continue;
+        }
+
+        QStringList albumPaths;
+        QSet<QString> dedupe;
+        const auto array = it.value().toArray();
+        for (const auto &value : array) {
+            const QString relativePath = value.toString();
+            const QString absolutePath = QDir::cleanPath(QDir(m_rootFolder).absoluteFilePath(relativePath));
+            if (!contains(absolutePath) || dedupe.contains(absolutePath)) {
+                continue;
+            }
+            dedupe.insert(absolutePath);
+            albumPaths.push_back(absolutePath);
+        }
+
+        m_albums.insert(albumName, albumPaths);
+    }
 }
 
 void PhotoLibrary::saveMetadata() const
@@ -204,6 +302,7 @@ void PhotoLibrary::saveMetadata() const
     }
 
     QJsonObject entries;
+    QJsonObject albums;
 
     for (const auto &item : m_items) {
         if (item.tags.isEmpty() && !item.favorite && item.rating == 0) {
@@ -222,8 +321,29 @@ void PhotoLibrary::saveMetadata() const
         entries.insert(item.relativePath, obj);
     }
 
+    for (auto it = m_albums.begin(); it != m_albums.end(); ++it) {
+        const QString albumName = it.key().trimmed();
+        if (albumName.isEmpty()) {
+            continue;
+        }
+
+        QJsonArray albumEntries;
+        QSet<QString> dedupe;
+        for (const auto &absolutePath : it.value()) {
+            const QString cleanPath = QDir::cleanPath(absolutePath);
+            if (!contains(cleanPath) || dedupe.contains(cleanPath)) {
+                continue;
+            }
+            dedupe.insert(cleanPath);
+            albumEntries.push_back(QDir(m_rootFolder).relativeFilePath(cleanPath));
+        }
+
+        albums.insert(albumName, albumEntries);
+    }
+
     QJsonObject root;
     root.insert("items", entries);
+    root.insert("albums", albums);
 
     QFile file(metadataFilePath());
     if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
