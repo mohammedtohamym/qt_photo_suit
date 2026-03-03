@@ -18,6 +18,7 @@
 #include <QVBoxLayout>
 
 #include <algorithm>
+#include <QSet>
 
 MainWindow::MainWindow()
 {
@@ -119,6 +120,8 @@ void MainWindow::setupUi()
 
     m_tagsEdit = new QLineEdit(this);
     m_tagsEdit->setPlaceholderText("comma,separated,tags");
+    m_bulkTagsEdit = new QLineEdit(this);
+    m_bulkTagsEdit->setPlaceholderText("bulk tags to add to selected photos");
 
     m_favoriteCheck = new QCheckBox("Favorite", this);
 
@@ -127,6 +130,7 @@ void MainWindow::setupUi()
     m_ratingSpin->setPrefix("Rating: ");
 
     m_saveButton = new QPushButton("Save metadata", this);
+    m_bulkAddTagsButton = new QPushButton("Bulk add tags to selected", this);
     auto *openInExplorerButton = new QPushButton("Open photo location", this);
 
     detailsLayout->addWidget(m_previewLabel, 1);
@@ -134,6 +138,9 @@ void MainWindow::setupUi()
     detailsLayout->addWidget(m_pathLabel);
     detailsLayout->addWidget(new QLabel("Tags:", this));
     detailsLayout->addWidget(m_tagsEdit);
+    detailsLayout->addWidget(new QLabel("Bulk Tags:", this));
+    detailsLayout->addWidget(m_bulkTagsEdit);
+    detailsLayout->addWidget(m_bulkAddTagsButton);
     detailsLayout->addWidget(m_favoriteCheck);
     detailsLayout->addWidget(m_ratingSpin);
     detailsLayout->addWidget(m_saveButton);
@@ -243,6 +250,42 @@ void MainWindow::setupConnections()
 
         refreshList();
         statusBar()->showMessage("Photo metadata saved.", 2500);
+    });
+
+    connect(m_bulkAddTagsButton, &QPushButton::clicked, this, [this]() {
+        const QStringList selected = selectedPhotoPaths();
+        const QStringList newTags = parseTags(m_bulkTagsEdit->text());
+
+        if (selected.isEmpty() || newTags.isEmpty()) {
+            return;
+        }
+
+        for (const auto &path : selected) {
+            const PhotoItem item = m_library.byAbsolutePath(path);
+            QStringList merged = item.tags;
+            merged.append(newTags);
+
+            QSet<QString> dedupe;
+            QStringList normalized;
+            for (const auto &tag : merged) {
+                const QString clean = tag.trimmed();
+                if (clean.isEmpty()) {
+                    continue;
+                }
+                const QString key = clean.toLower();
+                if (dedupe.contains(key)) {
+                    continue;
+                }
+                dedupe.insert(key);
+                normalized.push_back(clean);
+            }
+
+            m_library.updateTags(path, normalized);
+        }
+
+        refreshList();
+        loadSelectionDetails();
+        statusBar()->showMessage("Bulk tags applied.", 2500);
     });
 }
 
