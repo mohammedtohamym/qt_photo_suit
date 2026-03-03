@@ -9,4 +9,4 @@
 7. [x] Editor square crop action
 8. [x] Editor sharpen control
 9. [x] Editor blur/noise-reduction control
-10. [ ] Editor export quality presets
+10. [x] Editor export quality presets
