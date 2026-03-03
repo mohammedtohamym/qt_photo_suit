@@ -22,6 +22,7 @@
 #include <QStyle>
 #include <QTimer>
 #include <QTextStream>
+#include <QToolBar>
 #include <QUrl>
 #include <QVBoxLayout>
 
