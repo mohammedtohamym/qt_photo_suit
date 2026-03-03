@@ -2,7 +2,7 @@
 
 The following 20 features are implemented one-by-one with one Git commit per feature.
 
-1. [ ] Modern dark UI theme and refined spacing
+1. [x] Modern dark UI theme and refined spacing
 2. [ ] Quick action toolbar
 3. [ ] Sort selector (name/rating/path)
 4. [ ] Thumbnail size slider

@@ -29,11 +29,31 @@ void MainWindow::setupUi()
 {
     setWindowTitle("Photo Organizer (Qt)");
     resize(1200, 760);
+    setStyleSheet(
+        "QMainWindow { background: #111827; }"
+        "QWidget { color: #e5e7eb; font-size: 13px; }"
+        "QLabel { color: #d1d5db; }"
+        "QLineEdit, QSpinBox, QListWidget {"
+        "  background: #1f2937; border: 1px solid #374151; border-radius: 8px;"
+        "  padding: 6px; color: #f9fafb;"
+        "}"
+        "QLineEdit:focus, QSpinBox:focus { border: 1px solid #60a5fa; }"
+        "QPushButton {"
+        "  background: #2563eb; border: none; border-radius: 8px;"
+        "  padding: 8px 12px; color: white; font-weight: 600;"
+        "}"
+        "QPushButton:hover { background: #3b82f6; }"
+        "QPushButton:disabled { background: #374151; color: #9ca3af; }"
+        "QCheckBox::indicator { width: 16px; height: 16px; }"
+        "QMenuBar, QMenu { background: #111827; color: #f9fafb; }"
+        "QMenu::item:selected { background: #1d4ed8; }"
+        "QStatusBar { background: #0b1220; color: #9ca3af; }"
+    );
 
     auto *central = new QWidget(this);
     auto *rootLayout = new QVBoxLayout(central);
-    rootLayout->setContentsMargins(10, 10, 10, 10);
-    rootLayout->setSpacing(8);
+    rootLayout->setContentsMargins(14, 14, 14, 14);
+    rootLayout->setSpacing(10);
 
     auto *filtersLayout = new QHBoxLayout();
     m_nameFilter = new QLineEdit(this);
