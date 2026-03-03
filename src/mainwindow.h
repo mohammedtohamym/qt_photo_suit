@@ -55,6 +55,7 @@ private:
     QLabel *m_pathLabel = nullptr;
     QLineEdit *m_tagsEdit = nullptr;
     QLineEdit *m_bulkTagsEdit = nullptr;
+    QCheckBox *m_autoSaveCheck = nullptr;
     QCheckBox *m_favoriteCheck = nullptr;
     QSpinBox *m_ratingSpin = nullptr;
     QPushButton *m_saveButton = nullptr;

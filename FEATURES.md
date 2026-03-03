@@ -18,7 +18,7 @@ The following 20 features are implemented one-by-one with one Git commit per fea
 14. [x] Recent folders menu persistence
 15. [x] Auto-load last opened folder on startup
 16. [x] Unsaved changes indicator in status bar
-17. [ ] Optional auto-save metadata mode
+17. [x] Optional auto-save metadata mode
 18. [ ] Random photo jump action
 19. [ ] Slideshow mode (auto-advance)
 20. [ ] Export visible library report to CSV

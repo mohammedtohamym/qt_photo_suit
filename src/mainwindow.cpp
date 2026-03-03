@@ -131,6 +131,8 @@ void MainWindow::setupUi()
     m_tagsEdit->setPlaceholderText("comma,separated,tags");
     m_bulkTagsEdit = new QLineEdit(this);
     m_bulkTagsEdit->setPlaceholderText("bulk tags to add to selected photos");
+    m_autoSaveCheck = new QCheckBox("Auto-save metadata", this);
+    m_autoSaveCheck->setChecked(QSettings("PhotoOrganizerQt", "PhotoOrganizerQt").value("autoSave", false).toBool());
 
     m_favoriteCheck = new QCheckBox("Favorite", this);
 
@@ -151,6 +153,7 @@ void MainWindow::setupUi()
     detailsLayout->addWidget(m_pathLabel);
     detailsLayout->addWidget(new QLabel("Tags:", this));
     detailsLayout->addWidget(m_tagsEdit);
+    detailsLayout->addWidget(m_autoSaveCheck);
     detailsLayout->addWidget(new QLabel("Bulk Tags:", this));
     detailsLayout->addWidget(m_bulkTagsEdit);
     detailsLayout->addWidget(m_bulkAddTagsButton);
@@ -247,6 +250,19 @@ void MainWindow::setupToolbar()
 
 void MainWindow::setupConnections()
 {
+    auto saveCurrentMetadata = [this]() {
+        const QString path = currentPhotoPath();
+        if (path.isEmpty()) {
+            return;
+        }
+
+        m_library.updateTags(path, parseTags(m_tagsEdit->text()));
+        m_library.updateFavorite(path, m_favoriteCheck->isChecked());
+        m_library.updateRating(path, m_ratingSpin->value());
+        setUnsavedChanges(false);
+        refreshList();
+    };
+
     auto selectAdjacent = [this](int delta) {
         if (m_photoList->count() == 0) {
             return;
@@ -270,17 +286,38 @@ void MainWindow::setupConnections()
     connect(m_tagsEdit, &QLineEdit::textChanged, this, [this](const QString &) {
         if (!m_isLoadingSelection && !currentPhotoPath().isEmpty()) {
             setUnsavedChanges(true);
+            if (m_autoSaveCheck->isChecked()) {
+                const QString path = currentPhotoPath();
+                m_library.updateTags(path, parseTags(m_tagsEdit->text()));
+                setUnsavedChanges(false);
+                refreshList();
+            }
         }
     });
     connect(m_favoriteCheck, &QCheckBox::toggled, this, [this](bool) {
         if (!m_isLoadingSelection && !currentPhotoPath().isEmpty()) {
             setUnsavedChanges(true);
+            if (m_autoSaveCheck->isChecked()) {
+                const QString path = currentPhotoPath();
+                m_library.updateFavorite(path, m_favoriteCheck->isChecked());
+                setUnsavedChanges(false);
+                refreshList();
+            }
         }
     });
     connect(m_ratingSpin, &QSpinBox::valueChanged, this, [this](int) {
         if (!m_isLoadingSelection && !currentPhotoPath().isEmpty()) {
             setUnsavedChanges(true);
+            if (m_autoSaveCheck->isChecked()) {
+                const QString path = currentPhotoPath();
+                m_library.updateRating(path, m_ratingSpin->value());
+                setUnsavedChanges(false);
+                refreshList();
+            }
         }
+    });
+    connect(m_autoSaveCheck, &QCheckBox::toggled, this, [](bool checked) {
+        QSettings("PhotoOrganizerQt", "PhotoOrganizerQt").setValue("autoSave", checked);
     });
     connect(m_sortCombo, &QComboBox::currentTextChanged, this, [this]() {
         refreshList();
@@ -312,18 +349,8 @@ void MainWindow::setupConnections()
         QDesktopServices::openUrl(QUrl::fromLocalFile(path));
     });
 
-    connect(m_saveButton, &QPushButton::clicked, this, [this]() {
-        const QString path = currentPhotoPath();
-        if (path.isEmpty()) {
-            return;
-        }
-
-        m_library.updateTags(path, parseTags(m_tagsEdit->text()));
-        m_library.updateFavorite(path, m_favoriteCheck->isChecked());
-        m_library.updateRating(path, m_ratingSpin->value());
-        setUnsavedChanges(false);
-
-        refreshList();
+    connect(m_saveButton, &QPushButton::clicked, this, [this, saveCurrentMetadata]() {
+        saveCurrentMetadata();
         statusBar()->showMessage("Photo metadata saved.", 2500);
     });
 
