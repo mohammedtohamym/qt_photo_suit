@@ -30,6 +30,7 @@ private:
     void clearDetails();
 
     QString currentPhotoPath() const;
+    QStringList selectedPhotoPaths() const;
     QStringList parseTags(const QString &tagText) const;
 
 private:

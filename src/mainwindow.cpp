@@ -99,6 +99,7 @@ void MainWindow::setupUi()
     m_photoList->setIconSize(QSize(140, 140));
     m_photoList->setResizeMode(QListWidget::Adjust);
     m_photoList->setMovement(QListView::Static);
+    m_photoList->setSelectionMode(QAbstractItemView::ExtendedSelection);
     m_photoList->setSpacing(10);
     m_photoList->setWordWrap(true);
 
@@ -414,6 +415,15 @@ QString MainWindow::currentPhotoPath() const
 {
     auto *item = m_photoList->currentItem();
     return item ? item->data(Qt::UserRole).toString() : QString();
+}
+
+QStringList MainWindow::selectedPhotoPaths() const
+{
+    QStringList paths;
+    for (auto *item : m_photoList->selectedItems()) {
+        paths.push_back(item->data(Qt::UserRole).toString());
+    }
+    return paths;
 }
 
 QStringList MainWindow::parseTags(const QString &tagText) const
