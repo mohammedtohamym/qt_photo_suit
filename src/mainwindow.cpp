@@ -21,6 +21,7 @@ MainWindow::MainWindow()
 {
     setupUi();
     setupMenu();
+    setupToolbar();
     setupConnections();
     statusBar()->showMessage("Open a folder to start organizing photos.");
 }
@@ -153,6 +154,25 @@ void MainWindow::setupMenu()
     fileMenu->addAction(openAction);
     fileMenu->addSeparator();
     fileMenu->addAction(quitAction);
+}
+
+void MainWindow::setupToolbar()
+{
+    auto *toolbar = addToolBar("Quick Actions");
+    toolbar->setMovable(false);
+
+    auto *openAction = toolbar->addAction(style()->standardIcon(QStyle::SP_DirOpenIcon), "Open");
+    auto *refreshAction = toolbar->addAction(style()->standardIcon(QStyle::SP_BrowserReload), "Refresh");
+    auto *clearFiltersAction = toolbar->addAction(style()->standardIcon(QStyle::SP_DialogResetButton), "Clear Filters");
+
+    connect(openAction, &QAction::triggered, this, &MainWindow::openFolder);
+    connect(refreshAction, &QAction::triggered, this, &MainWindow::refreshList);
+    connect(clearFiltersAction, &QAction::triggered, this, [this]() {
+        m_nameFilter->clear();
+        m_tagFilter->clear();
+        m_favoritesOnly->setChecked(false);
+        refreshList();
+    });
 }
 
 void MainWindow::setupConnections()

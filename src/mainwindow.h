@@ -19,6 +19,7 @@ public:
 private:
     void setupUi();
     void setupMenu();
+    void setupToolbar();
     void setupConnections();
 
     void openFolder();
