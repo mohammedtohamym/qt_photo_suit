@@ -11,6 +11,7 @@
 #include <QFileInfo>
 #include <QFileSystemModel>
 #include <QHBoxLayout>
+#include <QInputDialog>
 #include <QListWidgetItem>
 #include <QMenu>
 #include <QMenuBar>
@@ -133,9 +134,19 @@ void MainWindow::setupUi()
     m_tagFilter = new QLineEdit(this);
     m_tagFilter->setPlaceholderText("Filter by tag...");
 
+    m_savedSearchCombo = new QComboBox(this);
+    m_savedSearchCombo->setMinimumWidth(200);
+    m_savedSearchCombo->addItem("Saved searches");
+    m_saveSearchButton = new QPushButton("Save Search", this);
+    m_deleteSearchButton = new QPushButton("Delete", this);
+    m_deleteSearchButton->setMaximumWidth(90);
+
     m_favoritesOnly = new QCheckBox("Favorites only", this);
     searchRow->addWidget(m_nameFilter, 3);
     searchRow->addWidget(m_tagFilter, 2);
+    searchRow->addWidget(m_savedSearchCombo);
+    searchRow->addWidget(m_saveSearchButton);
+    searchRow->addWidget(m_deleteSearchButton);
     searchRow->addWidget(m_favoritesOnly);
 
     auto *controlsRow = new QHBoxLayout();
@@ -451,6 +462,34 @@ void MainWindow::setupToolbar()
 
 void MainWindow::setupConnections()
 {
+    auto loadSavedSearches = [this]() {
+        const QString current = m_savedSearchCombo->currentData().toString();
+        m_savedSearchCombo->blockSignals(true);
+        m_savedSearchCombo->clear();
+        m_savedSearchCombo->addItem("Saved searches", QString());
+
+        const QStringList rawEntries = QSettings("PhotoOrganizerQt", "PhotoOrganizerQt").value("savedSearches").toStringList();
+        for (const auto &entry : rawEntries) {
+            const QStringList parts = entry.split("||");
+            if (parts.size() < 7 || parts[0].trimmed().isEmpty()) {
+                continue;
+            }
+            m_savedSearchCombo->addItem(parts[0], entry);
+        }
+
+        int restoreIndex = 0;
+        for (int i = 0; i < m_savedSearchCombo->count(); ++i) {
+            if (m_savedSearchCombo->itemData(i).toString() == current) {
+                restoreIndex = i;
+                break;
+            }
+        }
+        m_savedSearchCombo->setCurrentIndex(restoreIndex);
+        m_savedSearchCombo->blockSignals(false);
+    };
+
+    loadSavedSearches();
+
     auto saveCurrentMetadata = [this]() {
         const QString path = currentPhotoPath();
         if (path.isEmpty()) {
@@ -484,6 +523,68 @@ void MainWindow::setupConnections()
 
     connect(m_nameFilter, &QLineEdit::textChanged, this, &MainWindow::refreshList);
     connect(m_tagFilter, &QLineEdit::textChanged, this, &MainWindow::refreshList);
+
+    connect(m_saveSearchButton, &QPushButton::clicked, this, [this, loadSavedSearches]() {
+        const QString name = QInputDialog::getText(this, "Save Search", "Preset name:").trimmed();
+        if (name.isEmpty()) {
+            return;
+        }
+
+        QString serialized = QString("%1||%2||%3||%4||%5||%6||%7")
+            .arg(name)
+            .arg(m_nameFilter->text())
+            .arg(m_tagFilter->text())
+            .arg(m_favoritesOnly->isChecked() ? "1" : "0")
+            .arg(m_minRatingFilter->value())
+            .arg(m_sortCombo->currentText())
+            .arg(m_viewModeCombo->currentText());
+
+        QStringList entries = QSettings("PhotoOrganizerQt", "PhotoOrganizerQt").value("savedSearches").toStringList();
+        for (int i = entries.size() - 1; i >= 0; --i) {
+            if (entries[i].startsWith(name + "||")) {
+                entries.removeAt(i);
+            }
+        }
+        entries.prepend(serialized);
+        QSettings("PhotoOrganizerQt", "PhotoOrganizerQt").setValue("savedSearches", entries);
+        loadSavedSearches();
+        statusBar()->showMessage("Saved search preset added.", 2000);
+    });
+
+    connect(m_savedSearchCombo, &QComboBox::currentIndexChanged, this, [this](int index) {
+        if (index <= 0) {
+            return;
+        }
+
+        const QString data = m_savedSearchCombo->itemData(index).toString();
+        const QStringList parts = data.split("||");
+        if (parts.size() < 7) {
+            return;
+        }
+
+        m_nameFilter->setText(parts[1]);
+        m_tagFilter->setText(parts[2]);
+        m_favoritesOnly->setChecked(parts[3] == "1");
+        m_minRatingFilter->setValue(parts[4].toInt());
+        m_sortCombo->setCurrentText(parts[5]);
+        m_viewModeCombo->setCurrentText(parts[6]);
+        refreshList();
+        statusBar()->showMessage(QString("Applied search preset: %1").arg(parts[0]), 2000);
+    });
+
+    connect(m_deleteSearchButton, &QPushButton::clicked, this, [this, loadSavedSearches]() {
+        const int index = m_savedSearchCombo->currentIndex();
+        if (index <= 0) {
+            return;
+        }
+
+        const QString data = m_savedSearchCombo->itemData(index).toString();
+        QStringList entries = QSettings("PhotoOrganizerQt", "PhotoOrganizerQt").value("savedSearches").toStringList();
+        entries.removeAll(data);
+        QSettings("PhotoOrganizerQt", "PhotoOrganizerQt").setValue("savedSearches", entries);
+        loadSavedSearches();
+        statusBar()->showMessage("Saved search preset deleted.", 2000);
+    });
 
     connect(m_tagsEdit, &QLineEdit::textChanged, this, [this](const QString &) {
         if (!m_isLoadingSelection && !currentPhotoPath().isEmpty()) {

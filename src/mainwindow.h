@@ -59,6 +59,9 @@ private:
 
     QLineEdit *m_nameFilter = nullptr;
     QLineEdit *m_tagFilter = nullptr;
+    QComboBox *m_savedSearchCombo = nullptr;
+    QPushButton *m_saveSearchButton = nullptr;
+    QPushButton *m_deleteSearchButton = nullptr;
     QCheckBox *m_favoritesOnly = nullptr;
     QComboBox *m_sortCombo = nullptr;
     QComboBox *m_viewModeCombo = nullptr;

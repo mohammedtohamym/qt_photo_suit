@@ -1,8 +1,8 @@
 # Phase 2 - Next 20 Implemented Features
 
-1. [ ] Saved search presets (create)
-2. [ ] Saved search presets (apply)
-3. [ ] Saved search presets (delete)
+1. [x] Saved search presets (create)
+2. [x] Saved search presets (apply)
+3. [x] Saved search presets (delete)
 4. [ ] Smart albums (Favorites)
 5. [ ] Smart albums (Top Rated)
 6. [ ] Smart albums (Untagged)
