@@ -386,6 +386,10 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     m_temperatureSlider->setRange(-100, 100);
     m_temperatureSlider->setValue(0);
 
+    m_vignetteSlider = new QSlider(Qt::Horizontal, this);
+    m_vignetteSlider->setRange(0, 100);
+    m_vignetteSlider->setValue(0);
+
     m_grayscaleCheck = new QCheckBox("Grayscale", this);
     m_sepiaCheck = new QCheckBox("Sepia", this);
     m_editorRotateLeftButton = new QPushButton("Rotate Left", this);
@@ -409,6 +413,8 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     editorLayout->addWidget(m_saturationSlider);
     editorLayout->addWidget(new QLabel("Temperature", this));
     editorLayout->addWidget(m_temperatureSlider);
+    editorLayout->addWidget(new QLabel("Vignette", this));
+    editorLayout->addWidget(m_vignetteSlider);
     editorLayout->addWidget(m_grayscaleCheck);
     editorLayout->addWidget(m_sepiaCheck);
     editorLayout->addLayout(editorActions);
@@ -982,6 +988,9 @@ void MainWindow::setupConnections()
     connect(m_temperatureSlider, &QSlider::valueChanged, this, [this](int) {
         applyEditorAdjustments();
     });
+    connect(m_vignetteSlider, &QSlider::valueChanged, this, [this](int) {
+        applyEditorAdjustments();
+    });
     connect(m_grayscaleCheck, &QCheckBox::toggled, this, [this](bool) {
         applyEditorAdjustments();
     });
@@ -994,6 +1003,7 @@ void MainWindow::setupConnections()
         m_contrastSlider->setValue(0);
         m_saturationSlider->setValue(0);
         m_temperatureSlider->setValue(0);
+        m_vignetteSlider->setValue(0);
         m_grayscaleCheck->setChecked(false);
         m_sepiaCheck->setChecked(false);
         applyEditorAdjustments();
@@ -1454,18 +1464,21 @@ void MainWindow::loadEditorPhoto(const QString &path)
     m_contrastSlider->blockSignals(true);
     m_saturationSlider->blockSignals(true);
     m_temperatureSlider->blockSignals(true);
+    m_vignetteSlider->blockSignals(true);
     m_grayscaleCheck->blockSignals(true);
     m_sepiaCheck->blockSignals(true);
     m_brightnessSlider->setValue(0);
     m_contrastSlider->setValue(0);
     m_saturationSlider->setValue(0);
     m_temperatureSlider->setValue(0);
+    m_vignetteSlider->setValue(0);
     m_grayscaleCheck->setChecked(false);
     m_sepiaCheck->setChecked(false);
     m_brightnessSlider->blockSignals(false);
     m_contrastSlider->blockSignals(false);
     m_saturationSlider->blockSignals(false);
     m_temperatureSlider->blockSignals(false);
+    m_vignetteSlider->blockSignals(false);
     m_grayscaleCheck->blockSignals(false);
     m_sepiaCheck->blockSignals(false);
 
@@ -1489,10 +1502,14 @@ QImage MainWindow::makeEditedImage() const
     const int contrast = m_contrastSlider->value();
     const int saturation = m_saturationSlider->value();
     const int temperature = m_temperatureSlider->value();
+    const int vignette = m_vignetteSlider->value();
     const bool grayscale = m_grayscaleCheck->isChecked();
     const bool sepia = m_sepiaCheck->isChecked();
 
     const double contrastFactor = (100.0 + contrast) / 100.0;
+    const double centerX = output.width() / 2.0;
+    const double centerY = output.height() / 2.0;
+    const double maxDistance = std::sqrt(centerX * centerX + centerY * centerY);
 
     for (int y = 0; y < output.height(); ++y) {
         QRgb *line = reinterpret_cast<QRgb *>(output.scanLine(y));
@@ -1538,6 +1555,17 @@ QImage MainWindow::makeEditedImage() const
                 r = tr;
                 g = tg;
                 b = tb;
+            }
+
+            if (vignette > 0) {
+                const double dx = x - centerX;
+                const double dy = y - centerY;
+                const double distance = std::sqrt(dx * dx + dy * dy);
+                const double norm = qBound(0.0, distance / maxDistance, 1.0);
+                const double attenuation = 1.0 - (vignette / 100.0) * norm * norm;
+                r = qBound(0, static_cast<int>(std::round(r * attenuation)), 255);
+                g = qBound(0, static_cast<int>(std::round(g * attenuation)), 255);
+                b = qBound(0, static_cast<int>(std::round(b * attenuation)), 255);
             }
 
             line[x] = qRgb(r, g, b);

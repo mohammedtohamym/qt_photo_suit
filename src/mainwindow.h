@@ -116,6 +116,7 @@ private:
     QSlider *m_contrastSlider = nullptr;
     QSlider *m_saturationSlider = nullptr;
     QSlider *m_temperatureSlider = nullptr;
+    QSlider *m_vignetteSlider = nullptr;
     QCheckBox *m_grayscaleCheck = nullptr;
     QCheckBox *m_sepiaCheck = nullptr;
     QPushButton *m_editorRotateLeftButton = nullptr;

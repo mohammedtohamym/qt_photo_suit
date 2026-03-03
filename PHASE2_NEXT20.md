@@ -14,7 +14,7 @@
 12. [x] Editor saturation control
 13. [x] Editor temperature control
 14. [x] Editor sepia effect
-15. [ ] Editor vignette effect
+15. [x] Editor vignette effect
 16. [ ] Editor before/after toggle
 17. [ ] Editor auto-enhance action
 18. [ ] Editor undo history
