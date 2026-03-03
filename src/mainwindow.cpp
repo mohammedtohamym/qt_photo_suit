@@ -29,6 +29,7 @@
 #include <QToolBar>
 #include <QToolButton>
 #include <QTreeView>
+#include <QTransform>
 #include <QUrl>
 #include <QVBoxLayout>
 
@@ -342,10 +343,14 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     m_contrastSlider->setValue(0);
 
     m_grayscaleCheck = new QCheckBox("Grayscale", this);
+    m_editorRotateLeftButton = new QPushButton("Rotate Left", this);
+    m_editorRotateRightButton = new QPushButton("Rotate Right", this);
     m_editorResetButton = new QPushButton("Reset", this);
     m_editorSaveCopyButton = new QPushButton("Save edited copy", this);
 
     auto *editorActions = new QHBoxLayout();
+    editorActions->addWidget(m_editorRotateLeftButton);
+    editorActions->addWidget(m_editorRotateRightButton);
     editorActions->addWidget(m_editorResetButton);
     editorActions->addStretch(1);
     editorActions->addWidget(m_editorSaveCopyButton);
@@ -725,6 +730,22 @@ void MainWindow::setupConnections()
         m_brightnessSlider->setValue(0);
         m_contrastSlider->setValue(0);
         m_grayscaleCheck->setChecked(false);
+        applyEditorAdjustments();
+    });
+
+    connect(m_editorRotateLeftButton, &QPushButton::clicked, this, [this]() {
+        if (m_editorOriginalImage.isNull()) {
+            return;
+        }
+        m_editorOriginalImage = m_editorOriginalImage.transformed(QTransform().rotate(-90), Qt::SmoothTransformation);
+        applyEditorAdjustments();
+    });
+
+    connect(m_editorRotateRightButton, &QPushButton::clicked, this, [this]() {
+        if (m_editorOriginalImage.isNull()) {
+            return;
+        }
+        m_editorOriginalImage = m_editorOriginalImage.transformed(QTransform().rotate(90), Qt::SmoothTransformation);
         applyEditorAdjustments();
     });
 

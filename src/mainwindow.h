@@ -104,6 +104,8 @@ private:
     QSlider *m_brightnessSlider = nullptr;
     QSlider *m_contrastSlider = nullptr;
     QCheckBox *m_grayscaleCheck = nullptr;
+    QPushButton *m_editorRotateLeftButton = nullptr;
+    QPushButton *m_editorRotateRightButton = nullptr;
     QPushButton *m_editorResetButton = nullptr;
     QPushButton *m_editorSaveCopyButton = nullptr;
     QImage m_editorOriginalImage;
