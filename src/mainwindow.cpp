@@ -6,6 +6,7 @@
 #include <QColor>
 #include <QDesktopServices>
 #include <QDir>
+#include <QDateTime>
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -13,6 +14,7 @@
 #include <QHBoxLayout>
 #include <QInputDialog>
 #include <QListWidgetItem>
+#include <QMap>
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
@@ -333,6 +335,16 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     filesLayout->addWidget(new QLabel("File Explorer", this));
     filesLayout->addWidget(m_filesTree, 1);
 
+    m_timelineTab = new QWidget(this);
+    m_timelineTab->setObjectName("FilesCard");
+    auto *timelineLayout = new QVBoxLayout(m_timelineTab);
+    timelineLayout->setContentsMargins(12, 12, 12, 12);
+    timelineLayout->setSpacing(10);
+    m_timelineList = new QListWidget(this);
+    m_timelineList->setSelectionMode(QAbstractItemView::SingleSelection);
+    timelineLayout->addWidget(new QLabel("Timeline", this));
+    timelineLayout->addWidget(m_timelineList, 1);
+
     m_editorTab = new QWidget(this);
     m_editorTab->setObjectName("EditorCard");
     auto *editorLayout = new QVBoxLayout(m_editorTab);
@@ -377,6 +389,7 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     m_suiteTabs->addTab(m_organizeTab, "Organize");
     m_suiteTabs->addTab(m_albumsTab, "Albums");
     m_suiteTabs->addTab(m_filesTab, "Files");
+    m_suiteTabs->addTab(m_timelineTab, "Timeline");
     m_suiteTabs->addTab(m_editorTab, "Editor");
 
     splitter->addWidget(m_suiteTabs);
@@ -831,6 +844,16 @@ void MainWindow::setupConnections()
         QDesktopServices::openUrl(QUrl::fromLocalFile(path));
     });
 
+    connect(m_timelineList, &QListWidget::itemDoubleClicked, this, [this](QListWidgetItem *item) {
+        if (!item) {
+            return;
+        }
+        const QString path = item->data(Qt::UserRole).toString();
+        if (!path.isEmpty()) {
+            QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+        }
+    });
+
     connect(m_brightnessSlider, &QSlider::valueChanged, this, [this](int) {
         applyEditorAdjustments();
     });
@@ -1026,6 +1049,35 @@ void MainWindow::refreshList()
     }
 
     refreshAlbumsWorkspace();
+    refreshTimelineWorkspace();
+    refreshTimelineWorkspace();
+}
+
+void MainWindow::refreshTimelineWorkspace()
+{
+    m_timelineList->clear();
+
+    QMap<QString, QStringList> grouped;
+    for (const auto &photo : m_library.allItems()) {
+        const QFileInfo info(photo.absolutePath);
+        const QString monthKey = info.lastModified().toString("yyyy MMMM");
+        grouped[monthKey].push_back(photo.absolutePath);
+    }
+
+    auto keys = grouped.keys();
+    std::sort(keys.begin(), keys.end(), std::greater<QString>());
+    for (const auto &key : keys) {
+        auto *header = new QListWidgetItem(QString("%1 • %2 photos").arg(key).arg(grouped[key].size()), m_timelineList);
+        header->setFlags(Qt::NoItemFlags);
+        header->setForeground(QColor("#93a4bf"));
+
+        const auto paths = grouped[key];
+        for (const auto &path : paths) {
+            auto *item = new QListWidgetItem(QString("  %1").arg(QFileInfo(path).fileName()), m_timelineList);
+            item->setData(Qt::UserRole, path);
+            item->setToolTip(path);
+        }
+    }
 }
 
 void MainWindow::refreshAlbumsWorkspace()

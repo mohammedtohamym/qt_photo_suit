@@ -7,7 +7,7 @@
 5. [x] Smart albums (Top Rated)
 6. [x] Smart albums (Untagged)
 7. [x] Albums photo count badges
-8. [ ] Timeline workspace tab
+8. [x] Timeline workspace tab
 9. [ ] Files workspace batch rename selected file
 10. [ ] Files workspace duplicate scan panel
 11. [ ] Files workspace open containing folder action

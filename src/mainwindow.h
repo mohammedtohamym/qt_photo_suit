@@ -37,6 +37,7 @@ private:
     void setupSuiteTabs(QSplitter *splitter);
     void refreshAlbumsWorkspace();
     void refreshFilesWorkspace();
+    void refreshTimelineWorkspace();
     void loadEditorPhoto(const QString &path);
     void applyEditorAdjustments();
     void updateEditorPreview();
@@ -101,6 +102,9 @@ private:
     QWidget *m_filesTab = nullptr;
     QTreeView *m_filesTree = nullptr;
     QFileSystemModel *m_fileModel = nullptr;
+
+    QWidget *m_timelineTab = nullptr;
+    QListWidget *m_timelineList = nullptr;
 
     QWidget *m_editorTab = nullptr;
     QLabel *m_editorPreviewLabel = nullptr;
