@@ -40,7 +40,7 @@ MainWindow::MainWindow()
 
 void MainWindow::setupUi()
 {
-    setWindowTitle("Photo Organizer (Qt)");
+    setWindowTitle("Photo Organizer (Qt)[*]");
     resize(1200, 760);
     setStyleSheet(
         "QMainWindow { background: #111827; }"
@@ -267,6 +267,21 @@ void MainWindow::setupConnections()
 
     connect(m_nameFilter, &QLineEdit::textChanged, this, &MainWindow::refreshList);
     connect(m_tagFilter, &QLineEdit::textChanged, this, &MainWindow::refreshList);
+    connect(m_tagsEdit, &QLineEdit::textChanged, this, [this](const QString &) {
+        if (!m_isLoadingSelection && !currentPhotoPath().isEmpty()) {
+            setUnsavedChanges(true);
+        }
+    });
+    connect(m_favoriteCheck, &QCheckBox::toggled, this, [this](bool) {
+        if (!m_isLoadingSelection && !currentPhotoPath().isEmpty()) {
+            setUnsavedChanges(true);
+        }
+    });
+    connect(m_ratingSpin, &QSpinBox::valueChanged, this, [this](int) {
+        if (!m_isLoadingSelection && !currentPhotoPath().isEmpty()) {
+            setUnsavedChanges(true);
+        }
+    });
     connect(m_sortCombo, &QComboBox::currentTextChanged, this, [this]() {
         refreshList();
     });
@@ -306,6 +321,7 @@ void MainWindow::setupConnections()
         m_library.updateTags(path, parseTags(m_tagsEdit->text()));
         m_library.updateFavorite(path, m_favoriteCheck->isChecked());
         m_library.updateRating(path, m_ratingSpin->value());
+        setUnsavedChanges(false);
 
         refreshList();
         statusBar()->showMessage("Photo metadata saved.", 2500);
@@ -550,6 +566,7 @@ void MainWindow::loadSelectionDetails()
     }
 
     const PhotoItem photo = m_library.byAbsolutePath(path);
+    m_isLoadingSelection = true;
 
     const QPixmap pix(photo.absolutePath);
     if (pix.isNull()) {
@@ -566,18 +583,32 @@ void MainWindow::loadSelectionDetails()
     m_tagsEdit->setText(photo.tags.join(", "));
     m_favoriteCheck->setChecked(photo.favorite);
     m_ratingSpin->setValue(photo.rating);
+    m_isLoadingSelection = false;
+    setUnsavedChanges(false);
     m_saveButton->setEnabled(true);
 }
 
 void MainWindow::clearDetails()
 {
+    m_isLoadingSelection = true;
     m_previewLabel->setText("No photo selected");
     m_previewLabel->setPixmap(QPixmap());
     m_pathLabel->setText("-");
     m_tagsEdit->clear();
     m_favoriteCheck->setChecked(false);
     m_ratingSpin->setValue(0);
+    m_isLoadingSelection = false;
+    setUnsavedChanges(false);
     m_saveButton->setEnabled(false);
+}
+
+void MainWindow::setUnsavedChanges(bool value)
+{
+    m_hasUnsavedChanges = value;
+    setWindowModified(value);
+    if (value) {
+        statusBar()->showMessage("Unsaved metadata changes.");
+    }
 }
 
 QString MainWindow::currentPhotoPath() const

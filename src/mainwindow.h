@@ -32,6 +32,7 @@ private:
     void refreshList();
     void loadSelectionDetails();
     void clearDetails();
+    void setUnsavedChanges(bool value);
 
     QString currentPhotoPath() const;
     QStringList selectedPhotoPaths() const;
@@ -65,4 +66,6 @@ private:
 
     QMenu *m_recentFoldersMenu = nullptr;
     QStringList m_recentFolders;
+    bool m_hasUnsavedChanges = false;
+    bool m_isLoadingSelection = false;
 };
