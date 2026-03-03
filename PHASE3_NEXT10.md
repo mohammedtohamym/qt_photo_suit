@@ -7,6 +7,6 @@
 5. [x] Files bulk rename pattern tool
 6. [x] Files quick duplicate cleanup (delete selected duplicate entries)
 7. [x] Editor square crop action
-8. [ ] Editor sharpen control
+8. [x] Editor sharpen control
 9. [ ] Editor blur/noise-reduction control
 10. [ ] Editor export quality presets
