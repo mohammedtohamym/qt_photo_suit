@@ -31,6 +31,7 @@ private:
     void openFolder();
     void openFolderPath(const QString &folderPath);
     void refreshList();
+    void exportVisibleToCsv();
     void loadSelectionDetails();
     void clearDetails();
     void setUnsavedChanges(bool value);

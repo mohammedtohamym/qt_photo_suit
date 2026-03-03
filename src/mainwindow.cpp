@@ -7,6 +7,7 @@
 #include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QFile>
 #include <QHBoxLayout>
 #include <QListWidgetItem>
 #include <QMenuBar>
@@ -20,6 +21,7 @@
 #include <QStatusBar>
 #include <QStyle>
 #include <QTimer>
+#include <QTextStream>
 #include <QUrl>
 #include <QVBoxLayout>
 
@@ -243,6 +245,7 @@ void MainWindow::setupToolbar()
     auto *openAction = toolbar->addAction(style()->standardIcon(QStyle::SP_DirOpenIcon), "Open");
     auto *refreshAction = toolbar->addAction(style()->standardIcon(QStyle::SP_BrowserReload), "Refresh");
     auto *randomAction = toolbar->addAction(style()->standardIcon(QStyle::SP_BrowserStop), "Random");
+    auto *exportCsvAction = toolbar->addAction(style()->standardIcon(QStyle::SP_DialogSaveButton), "Export CSV");
     auto *clearFiltersAction = toolbar->addAction(style()->standardIcon(QStyle::SP_DialogResetButton), "Clear Filters");
 
     connect(openAction, &QAction::triggered, this, &MainWindow::openFolder);
@@ -254,6 +257,7 @@ void MainWindow::setupToolbar()
         const int row = QRandomGenerator::global()->bounded(m_photoList->count());
         m_photoList->setCurrentRow(row);
     });
+    connect(exportCsvAction, &QAction::triggered, this, &MainWindow::exportVisibleToCsv);
     connect(clearFiltersAction, &QAction::triggered, this, [this]() {
         m_nameFilter->clear();
         m_tagFilter->clear();
@@ -613,6 +617,58 @@ void MainWindow::refreshList()
     if (m_photoList->count() == 0) {
         clearDetails();
     }
+}
+
+void MainWindow::exportVisibleToCsv()
+{
+    if (m_photoList->count() == 0) {
+        statusBar()->showMessage("No visible photos to export.", 2500);
+        return;
+    }
+
+    const QString defaultPath = m_library.rootFolder().isEmpty()
+        ? QDir::homePath()
+        : m_library.rootFolder();
+    const QString filePath = QFileDialog::getSaveFileName(
+        this,
+        "Export visible photos to CSV",
+        QDir(defaultPath).filePath("photo_report.csv"),
+        "CSV Files (*.csv)");
+
+    if (filePath.isEmpty()) {
+        return;
+    }
+
+    QFile file(filePath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
+        QMessageBox::warning(this, "Export failed", "Could not write CSV file.");
+        return;
+    }
+
+    QTextStream out(&file);
+    out << "file_name,relative_path,favorite,rating,tags\n";
+    for (int row = 0; row < m_photoList->count(); ++row) {
+        auto *itemWidget = m_photoList->item(row);
+        const QString path = itemWidget->data(Qt::UserRole).toString();
+        const PhotoItem item = m_library.byAbsolutePath(path);
+        const QString fileName = QFileInfo(item.absolutePath).fileName();
+        const QString tags = item.tags.join("|");
+        QString escapedFileName = fileName;
+        QString escapedRelative = item.relativePath;
+        QString escapedTags = tags;
+        escapedFileName.replace('"', "\"\"");
+        escapedRelative.replace('"', "\"\"");
+        escapedTags.replace('"', "\"\"");
+
+        out << '"' << escapedFileName << "\",";
+        out << '"' << escapedRelative << "\",";
+        out << (item.favorite ? "true" : "false") << ',';
+        out << item.rating << ',';
+        out << '"' << escapedTags << "\"\n";
+    }
+
+    file.close();
+    statusBar()->showMessage("CSV export complete.", 2500);
 }
 
 void MainWindow::loadSelectionDetails()
