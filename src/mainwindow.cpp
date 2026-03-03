@@ -378,6 +378,10 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     m_contrastSlider->setRange(-100, 100);
     m_contrastSlider->setValue(0);
 
+    m_saturationSlider = new QSlider(Qt::Horizontal, this);
+    m_saturationSlider->setRange(-100, 100);
+    m_saturationSlider->setValue(0);
+
     m_grayscaleCheck = new QCheckBox("Grayscale", this);
     m_editorRotateLeftButton = new QPushButton("Rotate Left", this);
     m_editorRotateRightButton = new QPushButton("Rotate Right", this);
@@ -396,6 +400,8 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     editorLayout->addWidget(m_brightnessSlider);
     editorLayout->addWidget(new QLabel("Contrast", this));
     editorLayout->addWidget(m_contrastSlider);
+    editorLayout->addWidget(new QLabel("Saturation", this));
+    editorLayout->addWidget(m_saturationSlider);
     editorLayout->addWidget(m_grayscaleCheck);
     editorLayout->addLayout(editorActions);
 
@@ -962,6 +968,9 @@ void MainWindow::setupConnections()
     connect(m_contrastSlider, &QSlider::valueChanged, this, [this](int) {
         applyEditorAdjustments();
     });
+    connect(m_saturationSlider, &QSlider::valueChanged, this, [this](int) {
+        applyEditorAdjustments();
+    });
     connect(m_grayscaleCheck, &QCheckBox::toggled, this, [this](bool) {
         applyEditorAdjustments();
     });
@@ -969,6 +978,7 @@ void MainWindow::setupConnections()
     connect(m_editorResetButton, &QPushButton::clicked, this, [this]() {
         m_brightnessSlider->setValue(0);
         m_contrastSlider->setValue(0);
+        m_saturationSlider->setValue(0);
         m_grayscaleCheck->setChecked(false);
         applyEditorAdjustments();
     });
@@ -1426,12 +1436,15 @@ void MainWindow::loadEditorPhoto(const QString &path)
     m_editorOriginalImage = loaded.convertToFormat(QImage::Format_RGB32);
     m_brightnessSlider->blockSignals(true);
     m_contrastSlider->blockSignals(true);
+    m_saturationSlider->blockSignals(true);
     m_grayscaleCheck->blockSignals(true);
     m_brightnessSlider->setValue(0);
     m_contrastSlider->setValue(0);
+    m_saturationSlider->setValue(0);
     m_grayscaleCheck->setChecked(false);
     m_brightnessSlider->blockSignals(false);
     m_contrastSlider->blockSignals(false);
+    m_saturationSlider->blockSignals(false);
     m_grayscaleCheck->blockSignals(false);
 
     applyEditorAdjustments();
@@ -1452,6 +1465,7 @@ QImage MainWindow::makeEditedImage() const
     QImage output = m_editorOriginalImage;
     const int brightness = m_brightnessSlider->value();
     const int contrast = m_contrastSlider->value();
+    const int saturation = m_saturationSlider->value();
     const bool grayscale = m_grayscaleCheck->isChecked();
 
     const double contrastFactor = (100.0 + contrast) / 100.0;
@@ -1473,6 +1487,18 @@ QImage MainWindow::makeEditedImage() const
                 r = gray;
                 g = gray;
                 b = gray;
+            } else if (saturation != 0) {
+                QColor adjusted(r, g, b);
+                qreal h = adjusted.hslHueF();
+                qreal s = adjusted.hslSaturationF();
+                qreal l = adjusted.lightnessF();
+                if (h >= 0.0) {
+                    s = qBound(0.0, s * (1.0 + (saturation / 100.0)), 1.0);
+                    adjusted.setHslF(h, s, l);
+                    r = adjusted.red();
+                    g = adjusted.green();
+                    b = adjusted.blue();
+                }
             }
 
             line[x] = qRgb(r, g, b);

@@ -114,6 +114,7 @@ private:
     QLabel *m_editorPreviewLabel = nullptr;
     QSlider *m_brightnessSlider = nullptr;
     QSlider *m_contrastSlider = nullptr;
+    QSlider *m_saturationSlider = nullptr;
     QCheckBox *m_grayscaleCheck = nullptr;
     QPushButton *m_editorRotateLeftButton = nullptr;
     QPushButton *m_editorRotateRightButton = nullptr;
