@@ -131,8 +131,11 @@ void MainWindow::setupUi()
     filterCardLayout->setContentsMargins(12, 12, 12, 12);
     filterCardLayout->setSpacing(8);
 
-    auto *searchRow = new QHBoxLayout();
-    searchRow->setSpacing(8);
+    auto *searchPrimaryRow = new QHBoxLayout();
+    searchPrimaryRow->setSpacing(8);
+
+    auto *searchPresetRow = new QHBoxLayout();
+    searchPresetRow->setSpacing(8);
 
     m_nameFilter = new QLineEdit(this);
     m_nameFilter->setPlaceholderText("Search photos by name...");
@@ -148,12 +151,14 @@ void MainWindow::setupUi()
     m_deleteSearchButton->setMaximumWidth(90);
 
     m_favoritesOnly = new QCheckBox("Favorites only", this);
-    searchRow->addWidget(m_nameFilter, 3);
-    searchRow->addWidget(m_tagFilter, 2);
-    searchRow->addWidget(m_savedSearchCombo);
-    searchRow->addWidget(m_saveSearchButton);
-    searchRow->addWidget(m_deleteSearchButton);
-    searchRow->addWidget(m_favoritesOnly);
+    searchPrimaryRow->addWidget(m_nameFilter, 3);
+    searchPrimaryRow->addWidget(m_tagFilter, 2);
+    searchPrimaryRow->addWidget(m_favoritesOnly);
+
+    searchPresetRow->addWidget(m_savedSearchCombo);
+    searchPresetRow->addWidget(m_saveSearchButton);
+    searchPresetRow->addWidget(m_deleteSearchButton);
+    searchPresetRow->addStretch(1);
 
     auto *controlsRow = new QHBoxLayout();
     controlsRow->setSpacing(8);
@@ -182,7 +187,8 @@ void MainWindow::setupUi()
     controlsRow->addWidget(m_thumbSizeSlider);
     controlsRow->addStretch(1);
 
-    filterCardLayout->addLayout(searchRow);
+    filterCardLayout->addLayout(searchPrimaryRow);
+    filterCardLayout->addLayout(searchPresetRow);
     filterCardLayout->addLayout(controlsRow);
 
     auto *splitter = new QSplitter(Qt::Horizontal, this);
@@ -304,6 +310,7 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     newAlbumRow->addWidget(m_deleteAlbumButton);
 
     auto *smartRuleRow = new QHBoxLayout();
+    auto *smartRuleActionsRow = new QHBoxLayout();
     m_smartRuleNameEdit = new QLineEdit(this);
     m_smartRuleNameEdit->setPlaceholderText("Smart rule name");
     m_smartRuleTagEdit = new QLineEdit(this);
@@ -318,8 +325,10 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     smartRuleRow->addWidget(m_smartRuleTagEdit, 1);
     smartRuleRow->addWidget(m_smartRuleMinRatingSpin);
     smartRuleRow->addWidget(m_smartRuleFavoriteOnlyCheck);
-    smartRuleRow->addWidget(m_createSmartRuleButton);
-    smartRuleRow->addWidget(m_deleteSmartRuleButton);
+
+    smartRuleActionsRow->addWidget(m_createSmartRuleButton);
+    smartRuleActionsRow->addWidget(m_deleteSmartRuleButton);
+    smartRuleActionsRow->addStretch(1);
 
     m_albumList = new QListWidget(this);
     m_albumPhotoList = new QListWidget(this);
@@ -333,6 +342,7 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
 
     albumsLayout->addLayout(newAlbumRow);
     albumsLayout->addLayout(smartRuleRow);
+    albumsLayout->addLayout(smartRuleActionsRow);
     albumsLayout->addWidget(new QLabel("Albums", this));
     albumsLayout->addWidget(m_albumList, 1);
     albumsLayout->addLayout(albumActionsRow);
