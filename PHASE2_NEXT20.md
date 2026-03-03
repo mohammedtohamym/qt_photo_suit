@@ -17,6 +17,6 @@
 15. [x] Editor vignette effect
 16. [x] Editor before/after toggle
 17. [x] Editor auto-enhance action
-18. [ ] Editor undo history
-19. [ ] Editor redo history
+18. [x] Editor undo history
+19. [x] Editor redo history
 20. [ ] Editor snapshots (save/apply)

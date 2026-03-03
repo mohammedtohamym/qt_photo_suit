@@ -394,6 +394,8 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     m_sepiaCheck = new QCheckBox("Sepia", this);
     m_editorRotateLeftButton = new QPushButton("Rotate Left", this);
     m_editorRotateRightButton = new QPushButton("Rotate Right", this);
+    m_editorUndoButton = new QPushButton("Undo", this);
+    m_editorRedoButton = new QPushButton("Redo", this);
     m_editorAutoEnhanceButton = new QPushButton("Auto Enhance", this);
     m_editorBeforeAfterButton = new QPushButton("Before/After", this);
     m_editorBeforeAfterButton->setCheckable(true);
@@ -403,6 +405,8 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     auto *editorActions = new QHBoxLayout();
     editorActions->addWidget(m_editorRotateLeftButton);
     editorActions->addWidget(m_editorRotateRightButton);
+    editorActions->addWidget(m_editorUndoButton);
+    editorActions->addWidget(m_editorRedoButton);
     editorActions->addWidget(m_editorAutoEnhanceButton);
     editorActions->addWidget(m_editorBeforeAfterButton);
     editorActions->addWidget(m_editorResetButton);
@@ -1023,6 +1027,8 @@ void MainWindow::setupConnections()
         if (m_editorOriginalImage.isNull()) {
             return;
         }
+        m_editorUndoStack.push_back(m_editorOriginalImage);
+        m_editorRedoStack.clear();
         m_editorOriginalImage = m_editorOriginalImage.transformed(QTransform().rotate(-90), Qt::SmoothTransformation);
         applyEditorAdjustments();
     });
@@ -1031,7 +1037,27 @@ void MainWindow::setupConnections()
         if (m_editorOriginalImage.isNull()) {
             return;
         }
+        m_editorUndoStack.push_back(m_editorOriginalImage);
+        m_editorRedoStack.clear();
         m_editorOriginalImage = m_editorOriginalImage.transformed(QTransform().rotate(90), Qt::SmoothTransformation);
+        applyEditorAdjustments();
+    });
+
+    connect(m_editorUndoButton, &QPushButton::clicked, this, [this]() {
+        if (m_editorUndoStack.isEmpty()) {
+            return;
+        }
+        m_editorRedoStack.push_back(m_editorOriginalImage);
+        m_editorOriginalImage = m_editorUndoStack.takeLast();
+        applyEditorAdjustments();
+    });
+
+    connect(m_editorRedoButton, &QPushButton::clicked, this, [this]() {
+        if (m_editorRedoStack.isEmpty()) {
+            return;
+        }
+        m_editorUndoStack.push_back(m_editorOriginalImage);
+        m_editorOriginalImage = m_editorRedoStack.takeLast();
         applyEditorAdjustments();
     });
 
@@ -1039,6 +1065,9 @@ void MainWindow::setupConnections()
         if (m_editorOriginalImage.isNull()) {
             return;
         }
+
+        m_editorUndoStack.push_back(m_editorOriginalImage);
+        m_editorRedoStack.clear();
 
         double sumLuma = 0.0;
         const int pixelCount = m_editorOriginalImage.width() * m_editorOriginalImage.height();
@@ -1466,6 +1495,8 @@ void MainWindow::clearDetails()
 
     m_editorOriginalImage = QImage();
     m_editorPreviewImage = QImage();
+    m_editorUndoStack.clear();
+    m_editorRedoStack.clear();
     m_editorBeforeAfterButton->setChecked(false);
     m_editorShowOriginal = false;
     m_editorPreviewLabel->setText("Editor preview (select a photo)");
@@ -1496,6 +1527,8 @@ void MainWindow::loadEditorPhoto(const QString &path)
     }
 
     m_editorOriginalImage = loaded.convertToFormat(QImage::Format_RGB32);
+    m_editorUndoStack.clear();
+    m_editorRedoStack.clear();
     m_brightnessSlider->blockSignals(true);
     m_contrastSlider->blockSignals(true);
     m_saturationSlider->blockSignals(true);

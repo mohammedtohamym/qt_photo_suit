@@ -12,6 +12,7 @@
 #include <QPushButton>
 #include <QSlider>
 #include <QSpinBox>
+#include <QVector>
 
 class QMenu;
 class QTimer;
@@ -121,12 +122,16 @@ private:
     QCheckBox *m_sepiaCheck = nullptr;
     QPushButton *m_editorRotateLeftButton = nullptr;
     QPushButton *m_editorRotateRightButton = nullptr;
+    QPushButton *m_editorUndoButton = nullptr;
+    QPushButton *m_editorRedoButton = nullptr;
     QPushButton *m_editorAutoEnhanceButton = nullptr;
     QPushButton *m_editorBeforeAfterButton = nullptr;
     QPushButton *m_editorResetButton = nullptr;
     QPushButton *m_editorSaveCopyButton = nullptr;
     QImage m_editorOriginalImage;
     QImage m_editorPreviewImage;
+    QVector<QImage> m_editorUndoStack;
+    QVector<QImage> m_editorRedoStack;
 
     QMenu *m_recentFoldersMenu = nullptr;
     QStringList m_recentFolders;
