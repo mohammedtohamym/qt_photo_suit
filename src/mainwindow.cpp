@@ -37,6 +37,7 @@
 #include <QVBoxLayout>
 
 #include <QHash>
+#include <QJsonArray>
 #include <QJsonDocument>
 
 #include <algorithm>
@@ -361,6 +362,7 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     m_scanDuplicatesButton = new QPushButton("Scan duplicates", this);
     m_openContainingFolderButton = new QPushButton("Open containing folder", this);
     m_deleteDuplicateEntryButton = new QPushButton("Delete selected duplicate entry", this);
+    m_exportManifestButton = new QPushButton("Export library manifest", this);
     m_duplicatesList = new QListWidget(this);
     m_duplicatesList->setMinimumHeight(140);
     m_duplicatesList->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -376,6 +378,7 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
 
     filesLayout->addWidget(m_openContainingFolderButton);
     filesLayout->addWidget(m_scanDuplicatesButton);
+    filesLayout->addWidget(m_exportManifestButton);
     filesLayout->addWidget(new QLabel("Likely duplicates", this));
     filesLayout->addWidget(m_duplicatesList);
     filesLayout->addWidget(m_deleteDuplicateEntryButton);
@@ -1176,6 +1179,10 @@ void MainWindow::setupConnections()
         refreshFilesWorkspace();
         refreshList();
         statusBar()->showMessage("Duplicate entry deleted.", 2200);
+    });
+
+    connect(m_exportManifestButton, &QPushButton::clicked, this, [this]() {
+        exportLibraryManifestJson();
     });
 
     connect(m_brightnessSlider, &QSlider::valueChanged, this, [this](int) {
@@ -1985,6 +1992,80 @@ void MainWindow::setUnsavedChanges(bool value)
     if (value) {
         statusBar()->showMessage("Unsaved metadata changes.");
     }
+}
+
+void MainWindow::exportLibraryManifestJson()
+{
+    const QString root = m_library.rootFolder();
+    if (root.isEmpty()) {
+        QMessageBox::information(this, "Export manifest", "Open a photo folder first.");
+        return;
+    }
+
+    const QString savePath = QFileDialog::getSaveFileName(
+        this,
+        "Export library manifest",
+        QDir(root).filePath("library_manifest.json"),
+        "JSON (*.json)");
+
+    if (savePath.isEmpty()) {
+        return;
+    }
+
+    QJsonObject rootObj;
+    rootObj.insert("generatedAt", QDateTime::currentDateTimeUtc().toString(Qt::ISODate));
+    rootObj.insert("rootFolder", root);
+
+    QJsonArray photosArray;
+    const auto items = m_library.allItems();
+    for (const auto &item : items) {
+        QJsonObject entry;
+        entry.insert("absolutePath", item.absolutePath);
+        entry.insert("relativePath", item.relativePath);
+        entry.insert("favorite", item.favorite);
+        entry.insert("rating", item.rating);
+
+        QJsonArray tags;
+        for (const auto &tag : item.tags) {
+            tags.push_back(tag);
+        }
+        entry.insert("tags", tags);
+
+        const QJsonObject recipe = m_library.editRecipeForPhoto(item.absolutePath);
+        if (!recipe.isEmpty()) {
+            entry.insert("recipe", recipe);
+        }
+
+        photosArray.push_back(entry);
+    }
+    rootObj.insert("photos", photosArray);
+    rootObj.insert("photoCount", photosArray.size());
+
+    QJsonArray albumsArray;
+    const QStringList albumNames = m_library.albumNames();
+    for (const auto &albumName : albumNames) {
+        QJsonObject albumEntry;
+        albumEntry.insert("name", albumName);
+
+        QJsonArray albumPhotos;
+        for (const auto &path : m_library.photosForAlbum(albumName)) {
+            albumPhotos.push_back(path);
+        }
+        albumEntry.insert("photos", albumPhotos);
+        albumEntry.insert("photoCount", albumPhotos.size());
+        albumsArray.push_back(albumEntry);
+    }
+    rootObj.insert("albums", albumsArray);
+
+    QFile outFile(savePath);
+    if (!outFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        QMessageBox::warning(this, "Export failed", "Could not write manifest file.");
+        return;
+    }
+
+    outFile.write(QJsonDocument(rootObj).toJson(QJsonDocument::Indented));
+    outFile.close();
+    statusBar()->showMessage("Library manifest exported.", 2500);
 }
 
 void MainWindow::loadEditorPhoto(const QString &path)

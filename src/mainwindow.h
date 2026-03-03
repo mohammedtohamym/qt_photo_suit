@@ -55,6 +55,7 @@ private:
     void loadSelectionDetails();
     void clearDetails();
     void setUnsavedChanges(bool value);
+    void exportLibraryManifestJson();
 
     QString currentPhotoPath() const;
     QStringList selectedPhotoPaths() const;
@@ -119,6 +120,7 @@ private:
     QPushButton *m_scanDuplicatesButton = nullptr;
     QPushButton *m_openContainingFolderButton = nullptr;
     QPushButton *m_deleteDuplicateEntryButton = nullptr;
+    QPushButton *m_exportManifestButton = nullptr;
     QListWidget *m_duplicatesList = nullptr;
 
     QWidget *m_timelineTab = nullptr;
