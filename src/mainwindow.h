@@ -54,6 +54,7 @@ private:
     QSpinBox *m_ratingSpin = nullptr;
     QPushButton *m_saveButton = nullptr;
     QPushButton *m_openPhotoButton = nullptr;
+    QPushButton *m_copyPathButton = nullptr;
     QPushButton *m_bulkAddTagsButton = nullptr;
     QPushButton *m_bulkFavoriteButton = nullptr;
     QPushButton *m_bulkRatingButton = nullptr;

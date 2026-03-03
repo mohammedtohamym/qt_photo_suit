@@ -1,6 +1,8 @@
 #include "mainwindow.h"
 
 #include <QAction>
+#include <QApplication>
+#include <QClipboard>
 #include <QDesktopServices>
 #include <QDir>
 #include <QFileDialog>
@@ -135,6 +137,7 @@ void MainWindow::setupUi()
     m_bulkFavoriteButton = new QPushButton("Apply favorite to selected", this);
     m_bulkRatingButton = new QPushButton("Apply rating to selected", this);
     m_openPhotoButton = new QPushButton("Open selected photo", this);
+    m_copyPathButton = new QPushButton("Copy selected path", this);
     auto *openInExplorerButton = new QPushButton("Open photo location", this);
 
     detailsLayout->addWidget(m_previewLabel, 1);
@@ -150,6 +153,7 @@ void MainWindow::setupUi()
     detailsLayout->addWidget(m_ratingSpin);
     detailsLayout->addWidget(m_bulkRatingButton);
     detailsLayout->addWidget(m_openPhotoButton);
+    detailsLayout->addWidget(m_copyPathButton);
     detailsLayout->addWidget(m_saveButton);
     detailsLayout->addWidget(openInExplorerButton);
     detailsLayout->addStretch();
@@ -351,6 +355,15 @@ void MainWindow::setupConnections()
             return;
         }
         QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+    });
+
+    connect(m_copyPathButton, &QPushButton::clicked, this, [this]() {
+        const QString path = currentPhotoPath();
+        if (path.isEmpty()) {
+            return;
+        }
+        QApplication::clipboard()->setText(path);
+        statusBar()->showMessage("Path copied to clipboard.", 2000);
     });
 }
 
