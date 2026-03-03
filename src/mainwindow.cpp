@@ -468,14 +468,18 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     editorActions->addWidget(m_editorAutoEnhanceButton);
     editorActions->addWidget(m_editorBeforeAfterButton);
     editorActions->addWidget(m_editorResetButton);
-    editorActions->addWidget(m_editorRecipePresetCombo);
-    editorActions->addWidget(m_editorSaveRecipePresetButton);
-    editorActions->addWidget(m_editorApplyRecipePresetButton);
-    editorActions->addWidget(m_editorBatchApplyRecipeButton);
     editorActions->addStretch(1);
     editorActions->addWidget(m_editorExportPresetCombo);
     editorActions->addWidget(m_editorSaveSnapshotButton);
     editorActions->addWidget(m_editorSaveCopyButton);
+
+    auto *editorRecipeRow = new QHBoxLayout();
+    editorRecipeRow->addWidget(new QLabel("Recipe Presets", this));
+    editorRecipeRow->addWidget(m_editorRecipePresetCombo);
+    editorRecipeRow->addWidget(m_editorSaveRecipePresetButton);
+    editorRecipeRow->addWidget(m_editorApplyRecipePresetButton);
+    editorRecipeRow->addWidget(m_editorBatchApplyRecipeButton);
+    editorRecipeRow->addStretch(1);
 
     editorLayout->addWidget(m_editorPreviewLabel, 1);
     editorLayout->addWidget(new QLabel("Brightness", this));
@@ -495,6 +499,7 @@ void MainWindow::setupSuiteTabs(QSplitter *splitter)
     editorLayout->addWidget(m_grayscaleCheck);
     editorLayout->addWidget(m_sepiaCheck);
     editorLayout->addLayout(editorActions);
+    editorLayout->addLayout(editorRecipeRow);
     editorLayout->addWidget(new QLabel("Snapshots", this));
     editorLayout->addWidget(m_editorSnapshotsList);
 
