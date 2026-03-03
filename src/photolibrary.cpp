@@ -24,6 +24,8 @@ bool PhotoLibrary::loadFolder(const QString &folderPath)
     m_rootFolder = info.absoluteFilePath();
     scanImages();
     loadMetadata();
+    rebuildTagIndex();
+    saveTagIndexCache();
     return true;
 }
 
@@ -100,6 +102,8 @@ void PhotoLibrary::updateTags(const QString &absolutePath, const QStringList &ta
     }
 
     m_items[indexIt.value()].tags = normalizeTags(tags);
+    rebuildTagIndex();
+    saveTagIndexCache();
     saveMetadata();
 }
 
@@ -123,6 +127,45 @@ void PhotoLibrary::updateRating(const QString &absolutePath, int rating)
 
     m_items[indexIt.value()].rating = qBound(0, rating, 5);
     saveMetadata();
+}
+
+QVector<PhotoItem> PhotoLibrary::indexedSearchByTagExact(const QString &tag) const
+{
+    QVector<PhotoItem> result;
+    const QString key = tag.trimmed().toLower();
+    if (key.isEmpty() || !m_tagIndex.contains(key)) {
+        return result;
+    }
+
+    const QStringList paths = m_tagIndex.value(key);
+    result.reserve(paths.size());
+    for (const auto &path : paths) {
+        const auto indexIt = m_indexByPath.constFind(path);
+        if (indexIt != m_indexByPath.constEnd()) {
+            result.push_back(m_items.at(indexIt.value()));
+        }
+    }
+    return result;
+}
+
+void PhotoLibrary::setEditRecipe(const QString &absolutePath, const QJsonObject &recipe)
+{
+    const QString cleanPath = QDir::cleanPath(absolutePath);
+    if (!contains(cleanPath)) {
+        return;
+    }
+
+    if (recipe.isEmpty()) {
+        m_editRecipes.remove(cleanPath);
+    } else {
+        m_editRecipes.insert(cleanPath, recipe);
+    }
+    saveMetadata();
+}
+
+QJsonObject PhotoLibrary::editRecipeForPhoto(const QString &absolutePath) const
+{
+    return m_editRecipes.value(QDir::cleanPath(absolutePath));
 }
 
 QStringList PhotoLibrary::albumNames() const
@@ -201,6 +244,52 @@ QString PhotoLibrary::metadataFilePath() const
     return QDir(m_rootFolder).filePath(".photo_organizer.json");
 }
 
+QString PhotoLibrary::tagIndexFilePath() const
+{
+    return QDir(m_rootFolder).filePath(".photo_tag_index.json");
+}
+
+void PhotoLibrary::rebuildTagIndex()
+{
+    m_tagIndex.clear();
+    for (const auto &item : m_items) {
+        for (const auto &tag : item.tags) {
+            const QString key = tag.trimmed().toLower();
+            if (key.isEmpty()) {
+                continue;
+            }
+            m_tagIndex[key].push_back(item.absolutePath);
+        }
+    }
+}
+
+void PhotoLibrary::saveTagIndexCache() const
+{
+    if (m_rootFolder.isEmpty()) {
+        return;
+    }
+
+    QJsonObject root;
+    QJsonObject buckets;
+    for (auto it = m_tagIndex.begin(); it != m_tagIndex.end(); ++it) {
+        QJsonArray arr;
+        for (const auto &path : it.value()) {
+            arr.push_back(QDir(m_rootFolder).relativeFilePath(path));
+        }
+        buckets.insert(it.key(), arr);
+    }
+    root.insert("tags", buckets);
+    root.insert("tagCount", buckets.keys().size());
+    root.insert("photoCount", m_items.size());
+
+    QFile file(tagIndexFilePath());
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        return;
+    }
+    file.write(QJsonDocument(root).toJson(QJsonDocument::Indented));
+    file.close();
+}
+
 void PhotoLibrary::scanImages()
 {
     m_items.clear();
@@ -229,6 +318,7 @@ void PhotoLibrary::scanImages()
 void PhotoLibrary::loadMetadata()
 {
     m_albums.clear();
+    m_editRecipes.clear();
 
     QFile file(metadataFilePath());
     if (!file.exists()) {
@@ -269,6 +359,10 @@ void PhotoLibrary::loadMetadata()
         item.tags = normalizeTags(tags);
         item.favorite = obj.value("favorite").toBool(false);
         item.rating = qBound(0, obj.value("rating").toInt(0), 5);
+
+        if (obj.value("recipe").isObject()) {
+            m_editRecipes.insert(item.absolutePath, obj.value("recipe").toObject());
+        }
     }
 
     const auto albumsObj = rootObj.value("albums").toObject();
@@ -318,6 +412,11 @@ void PhotoLibrary::saveMetadata() const
         obj.insert("tags", tagsArray);
         obj.insert("favorite", item.favorite);
         obj.insert("rating", item.rating);
+
+        const auto recipeIt = m_editRecipes.constFind(item.absolutePath);
+        if (recipeIt != m_editRecipes.constEnd() && !recipeIt.value().isEmpty()) {
+            obj.insert("recipe", recipeIt.value());
+        }
         entries.insert(item.relativePath, obj);
     }
 

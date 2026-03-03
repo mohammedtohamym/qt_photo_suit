@@ -30,6 +30,10 @@ public:
     void updateTags(const QString &absolutePath, const QStringList &tags);
     void updateFavorite(const QString &absolutePath, bool favorite);
     void updateRating(const QString &absolutePath, int rating);
+    QVector<PhotoItem> indexedSearchByTagExact(const QString &tag) const;
+
+    void setEditRecipe(const QString &absolutePath, const QJsonObject &recipe);
+    QJsonObject editRecipeForPhoto(const QString &absolutePath) const;
 
     QStringList albumNames() const;
     QStringList photosForAlbum(const QString &albumName) const;
@@ -40,9 +44,12 @@ public:
 
 private:
     QString metadataFilePath() const;
+    QString tagIndexFilePath() const;
     void scanImages();
     void loadMetadata();
     void saveMetadata() const;
+    void rebuildTagIndex();
+    void saveTagIndexCache() const;
 
     static bool isImageFile(const QString &fileName);
     static QStringList normalizeTags(const QStringList &rawTags);
@@ -52,4 +59,6 @@ private:
     QVector<PhotoItem> m_items;
     QHash<QString, int> m_indexByPath;
     QHash<QString, QStringList> m_albums;
+    QHash<QString, QStringList> m_tagIndex;
+    QHash<QString, QJsonObject> m_editRecipes;
 };
