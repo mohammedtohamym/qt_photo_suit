@@ -17,6 +17,8 @@
 #include <QUrl>
 #include <QVBoxLayout>
 
+#include <algorithm>
+
 MainWindow::MainWindow()
 {
     setupUi();
@@ -64,12 +66,16 @@ void MainWindow::setupUi()
     m_tagFilter->setPlaceholderText("Filter by tag...");
 
     m_favoritesOnly = new QCheckBox("Favorites only", this);
+    m_sortCombo = new QComboBox(this);
+    m_sortCombo->addItems({"Name (A-Z)", "Name (Z-A)", "Rating (High-Low)", "Path"});
 
     filtersLayout->addWidget(new QLabel("Name:", this));
     filtersLayout->addWidget(m_nameFilter, 2);
     filtersLayout->addWidget(new QLabel("Tag:", this));
     filtersLayout->addWidget(m_tagFilter, 2);
     filtersLayout->addWidget(m_favoritesOnly);
+    filtersLayout->addWidget(new QLabel("Sort:", this));
+    filtersLayout->addWidget(m_sortCombo);
 
     auto *splitter = new QSplitter(Qt::Horizontal, this);
 
@@ -179,6 +185,9 @@ void MainWindow::setupConnections()
 {
     connect(m_nameFilter, &QLineEdit::textChanged, this, &MainWindow::refreshList);
     connect(m_tagFilter, &QLineEdit::textChanged, this, &MainWindow::refreshList);
+    connect(m_sortCombo, &QComboBox::currentTextChanged, this, [this]() {
+        refreshList();
+    });
     connect(m_favoritesOnly, &QCheckBox::toggled, this, [this]() {
         refreshList();
     });
@@ -249,10 +258,30 @@ void MainWindow::refreshList()
 
     m_photoList->clear();
 
-    const auto items = m_library.filteredItems(
+    auto items = m_library.filteredItems(
         m_nameFilter->text(),
         m_tagFilter->text(),
         m_favoritesOnly->isChecked());
+
+    const QString sortMode = m_sortCombo->currentText();
+    std::sort(items.begin(), items.end(), [sortMode](const PhotoItem &left, const PhotoItem &right) {
+        const QString leftName = QFileInfo(left.absolutePath).fileName().toLower();
+        const QString rightName = QFileInfo(right.absolutePath).fileName().toLower();
+
+        if (sortMode == "Name (Z-A)") {
+            return leftName > rightName;
+        }
+        if (sortMode == "Rating (High-Low)") {
+            if (left.rating != right.rating) {
+                return left.rating > right.rating;
+            }
+            return leftName < rightName;
+        }
+        if (sortMode == "Path") {
+            return left.relativePath.toLower() < right.relativePath.toLower();
+        }
+        return leftName < rightName;
+    });
 
     for (const auto &item : items) {
         auto *listItem = new QListWidgetItem(m_photoList);

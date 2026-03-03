@@ -3,6 +3,7 @@
 #include "photolibrary.h"
 
 #include <QCheckBox>
+#include <QComboBox>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
@@ -36,6 +37,7 @@ private:
     QLineEdit *m_nameFilter = nullptr;
     QLineEdit *m_tagFilter = nullptr;
     QCheckBox *m_favoritesOnly = nullptr;
+    QComboBox *m_sortCombo = nullptr;
 
     QListWidget *m_photoList = nullptr;
 
